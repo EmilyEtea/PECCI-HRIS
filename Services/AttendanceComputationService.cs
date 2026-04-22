@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Options;
 using PECCI_HRIS.Configuration;
 using PECCI_HRIS.Models;
-
 namespace PECCI_HRIS.Services
 {
     /// <summary>
@@ -10,11 +9,15 @@ namespace PECCI_HRIS.Services
     /// </summary>
     public class AttendanceComputationService
     {
-        private readonly AttendanceSettings _settings;
+        private readonly AttendanceSettings _attendanceSettings;
+        private readonly PayrollSettings _payrollSettings;
 
-        public AttendanceComputationService(IOptions<AttendanceSettings> settings)
+        public AttendanceComputationService(
+            IOptions<AttendanceSettings> attendanceSettings,
+            IOptions<PayrollSettings> payrollSettings)
         {
-            _settings = settings.Value;
+            _attendanceSettings = attendanceSettings.Value;
+            _payrollSettings = payrollSettings.Value;
         }
 
         /// <summary>
@@ -38,12 +41,12 @@ namespace PECCI_HRIS.Services
             // 08:05:00 or earlier → NOT late
             // 08:05:01 onwards    → LATE (minutes counted from 08:00, not from 08:05)
             TimeSpan timeIn = record.TimeIn.Value;
-            TimeSpan lateThreshold = _settings.LateThreshold; // e.g. 08:05:00
+            TimeSpan lateThreshold = _attendanceSettings.LateThreshold; // e.g. 08:05:00
 
             if (timeIn > lateThreshold)
             {
                 // Late minutes = actual time-in minus official start (08:00), rounded up
-                double rawLateMinutes = (timeIn - _settings.WorkStart).TotalMinutes;
+                double rawLateMinutes = (timeIn - _attendanceSettings.WorkStart).TotalMinutes;
                 record.LateMinutes = Math.Ceiling(rawLateMinutes);
                 record.AttendanceStatus = "Late";
             }
@@ -59,9 +62,9 @@ namespace PECCI_HRIS.Services
                 double totalMinutes = (timeOut - timeIn).TotalMinutes;
 
                 // Deduct lunch break if employee worked through it
-                bool workedThroughLunch = timeIn <= _settings.LunchStart && timeOut >= _settings.LunchEnd;
+                bool workedThroughLunch = timeIn <= _attendanceSettings.LunchStart && timeOut >= _attendanceSettings.LunchEnd;
                 if (workedThroughLunch)
-                    totalMinutes -= _settings.LunchBreakDurationMinutes;
+                    totalMinutes -= _attendanceSettings.LunchBreakDurationMinutes;
 
                 // Deduct break time if recorded
                 if (record.BreakOut.HasValue && record.BreakIn.HasValue)
@@ -74,11 +77,11 @@ namespace PECCI_HRIS.Services
 
                 // ── Overtime ─────────────────────────────────────────────────────
                 // Overtime = time worked beyond official end time
-                if (timeOut > _settings.WorkEnd)
+                if (timeOut > _attendanceSettings.WorkEnd)
                 {
-                    double overtimeMinutes = (timeOut - _settings.WorkEnd).TotalMinutes;
+                    double overtimeMinutes = (timeOut - _attendanceSettings.WorkEnd).TotalMinutes;
                     // Only credit overtime if it exceeds the threshold
-                    if (overtimeMinutes >= _settings.OvertimeThresholdMinutes)
+                    if (overtimeMinutes >= _attendanceSettings.OvertimeThresholdMinutes)
                         record.OvertimeMinutes = Math.Floor(overtimeMinutes);
                     else
                         record.OvertimeMinutes = 0;
@@ -90,9 +93,9 @@ namespace PECCI_HRIS.Services
 
                 // ── Undertime ────────────────────────────────────────────────────
                 // Undertime = left before official end time
-                if (timeOut < _settings.WorkEnd)
+                if (timeOut < _attendanceSettings.WorkEnd)
                 {
-                    record.UndertimeMinutes = Math.Ceiling((_settings.WorkEnd - timeOut).TotalMinutes);
+                    record.UndertimeMinutes = Math.Ceiling((_attendanceSettings.WorkEnd - timeOut).TotalMinutes);
                 }
                 else
                 {
@@ -118,15 +121,15 @@ namespace PECCI_HRIS.Services
             if (lateMinutes <= 0) return 0;
 
             // If a fixed per-minute amount is configured, use it
-            if (_settings.LateDeductionAmountPerMinute > 0)
-                return (decimal)lateMinutes * _settings.LateDeductionAmountPerMinute;
+            if (_attendanceSettings.LateDeductionAmountPerMinute > 0)
+                return (decimal)lateMinutes * _attendanceSettings.LateDeductionAmountPerMinute;
 
             // Otherwise derive from monthly salary
             // Daily rate = monthly / 22 working days
             // Hourly rate = daily / 8 hours
             // Per-minute rate = hourly / 60
             decimal dailyRate = monthlySalary / 22m;
-            decimal perMinuteRate = dailyRate / (decimal)_settings.WorkingMinutesPerDay;
+            decimal perMinuteRate = dailyRate / (decimal)_attendanceSettings.WorkingMinutesPerDay;
             return Math.Round((decimal)lateMinutes * perMinuteRate, 2);
         }
 
@@ -137,11 +140,11 @@ namespace PECCI_HRIS.Services
         {
             if (undertimeMinutes <= 0) return 0;
 
-            if (_settings.UndertimeDeductionAmountPerMinute > 0)
-                return (decimal)undertimeMinutes * _settings.UndertimeDeductionAmountPerMinute;
+            if (_attendanceSettings.UndertimeDeductionAmountPerMinute > 0)
+                return (decimal)undertimeMinutes * _attendanceSettings.UndertimeDeductionAmountPerMinute;
 
             decimal dailyRate = monthlySalary / 22m;
-            decimal perMinuteRate = dailyRate / (decimal)_settings.WorkingMinutesPerDay;
+            decimal perMinuteRate = dailyRate / (decimal)_attendanceSettings.WorkingMinutesPerDay;
             return Math.Round((decimal)undertimeMinutes * perMinuteRate, 2);
         }
 
@@ -154,14 +157,14 @@ namespace PECCI_HRIS.Services
             if (overtimeMinutes <= 0) return 0;
 
             decimal hourlyRate = (monthlySalary / 22m) / 8m;
-            decimal multiplier = _settings.OvertimeRateMultiplier;
+            decimal multiplier = _payrollSettings.OvertimeRateMultiplier;
 
             if (isRegularHoliday)
-                multiplier = _settings.RegularHolidayRateMultiplier * _settings.OvertimeRateMultiplier;
+                multiplier = _payrollSettings.RegularHolidayRateMultiplier * _payrollSettings.OvertimeRateMultiplier;
             else if (isSpecialHoliday)
-                multiplier = _settings.SpecialHolidayRateMultiplier * _settings.OvertimeRateMultiplier;
+                multiplier = _payrollSettings.SpecialHolidayRateMultiplier * _payrollSettings.OvertimeRateMultiplier;
             else if (isRestDay)
-                multiplier = _settings.RestDayOvertimeRateMultiplier;
+                multiplier = _payrollSettings.RestDayOvertimeRateMultiplier;
 
             decimal overtimeHours = (decimal)overtimeMinutes / 60m;
             return Math.Round(hourlyRate * multiplier * overtimeHours, 2);
@@ -174,16 +177,16 @@ namespace PECCI_HRIS.Services
         {
             return new AttendanceRuleSummary
             {
-                WorkStart = _settings.WorkStartTime,
-                WorkEnd = _settings.WorkEndTime,
-                GracePeriodMinutes = _settings.GracePeriodMinutes,
-                GracePeriodSeconds = _settings.GracePeriodSeconds,
-                LateThreshold = _settings.LateThreshold.ToString(@"hh\:mm\:ss"),
-                OvertimeThresholdMinutes = _settings.OvertimeThresholdMinutes,
-                LunchBreak = $"{_settings.LunchBreakStartTime} – {_settings.LunchBreakEndTime}",
-                WorkingHoursPerDay = _settings.WorkingHoursPerDay,
-                LateDeductionType = _settings.LateDeductionType,
-                UndertimeDeductionType = _settings.UndertimeDeductionType
+                WorkStart = _attendanceSettings.WorkStartTime,
+                WorkEnd = _attendanceSettings.WorkEndTime,
+                GracePeriodMinutes = _attendanceSettings.GracePeriodMinutes,
+                GracePeriodSeconds = _attendanceSettings.GracePeriodSeconds,
+                LateThreshold = _attendanceSettings.LateThreshold.ToString(@"hh\:mm\:ss"),
+                OvertimeThresholdMinutes = _attendanceSettings.OvertimeThresholdMinutes,
+                LunchBreak = $"{_attendanceSettings.LunchBreakStartTime} – {_attendanceSettings.LunchBreakEndTime}",
+                WorkingHoursPerDay = _attendanceSettings.WorkingHoursPerDay,
+                LateDeductionType = _attendanceSettings.LateDeductionType,
+                UndertimeDeductionType = _attendanceSettings.UndertimeDeductionType
             };
         }
     }

@@ -26,10 +26,30 @@
 <!-- ── Sidebar ──────────────────────────────────────────────────────────────── -->
 <nav class="sidebar" id="sidebar">
     <div class="sidebar-brand">
-        <div style="width:42px;height:42px;background:white;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;color:var(--pecci-blue);font-size:1rem;flex-shrink:0;">P</div>
+        <!-- PECCI Logo SVG — Green chevron/arrow with orange oval, matching official logo -->
+        <div class="sidebar-logo">
+            <svg viewBox="0 0 60 50" xmlns="http://www.w3.org/2000/svg">
+                <!-- Green chevron lines (left side of logo) -->
+                <g fill="none" stroke="#2E7D32" stroke-width="2.2">
+                    <polyline points="5,42 20,25 5,8"/>
+                    <polyline points="10,42 25,25 10,8"/>
+                    <polyline points="15,42 30,25 15,8"/>
+                    <polyline points="20,42 35,25 20,8"/>
+                </g>
+                <!-- Orange diagonal slash -->
+                <polygon points="18,42 38,42 42,8 22,8" fill="#E8521A" opacity="0.9"/>
+                <!-- Orange oval (top right of logo mark) -->
+                <ellipse cx="44" cy="12" rx="9" ry="6" fill="#E8521A" transform="rotate(-15,44,12)"/>
+                <!-- Green overlay lines on top -->
+                <g fill="none" stroke="#4CAF50" stroke-width="1.5" opacity="0.7">
+                    <polyline points="6,40 19,25 6,10"/>
+                    <polyline points="11,40 24,25 11,10"/>
+                </g>
+            </svg>
+        </div>
         <div class="sidebar-brand-text">
-            <div class="brand-title">PECCI HRIS</div>
-            <div class="brand-sub">HR Information System</div>
+            <div class="brand-title">PECCI</div>
+            <div class="brand-sub">Multipurpose Cooperative</div>
         </div>
     </div>
 
@@ -133,9 +153,9 @@
     <div class="topbar-right">
         <!-- Notifications -->
         <div class="dropdown">
-            <button class="btn btn-sm btn-light position-relative" data-bs-toggle="dropdown">
+            <button class="btn btn-sm position-relative" style="background:var(--pecci-green-pale);color:var(--pecci-green);border:1px solid var(--pecci-border);" data-bs-toggle="dropdown">
                 <i class="fas fa-bell"></i>
-                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size:0.6rem;">
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill" style="background:var(--pecci-orange);font-size:0.6rem;">
                     @ViewBag.PendingLeaveCount
                 </span>
             </button>
