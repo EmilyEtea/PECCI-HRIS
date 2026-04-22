@@ -1,0 +1,289 @@
+@model IEnumerable<PECCI_HRIS.Models.AttendanceRecord>
+@using PECCI_HRIS.Services
+@{
+    ViewData["Title"] = "Attendance";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var ruleSummary = ViewBag.RuleSummary as AttendanceRuleSummary;
+    var isHR = User.IsInRole("HR Admin") || User.IsInRole("HR Staff");
+    var empIdClaim = User.FindFirst("EmployeeID")?.Value ?? "0";
+    int currentEmpId = int.Parse(empIdClaim);
+}
+
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-clock me-2"></i>Attendance</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Dashboard" asp-action="Index">Dashboard</a></li>
+                <li class="breadcrumb-item active">Attendance</li>
+            </ol>
+        </nav>
+    </div>
+    @if (isHR)
+    {
+        <a asp-action="Summary" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-chart-bar me-1"></i> Summary Report
+        </a>
+    }
+</div>
+
+<!-- ── Attendance Rule Banner ──────────────────────────────────────────────── -->
+@if (ruleSummary != null)
+{
+    <div class="rule-preview mb-3">
+        <div class="rule-title"><i class="fas fa-info-circle me-1"></i> Current Attendance Rules</div>
+        <div class="row">
+            <div class="col-md-3">
+                <div class="rule-item">
+                    <span>Work Hours</span>
+                    <strong>@ruleSummary.WorkStart – @ruleSummary.WorkEnd</strong>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="rule-item">
+                    <span>Grace Period</span>
+                    <strong>@ruleSummary.GracePeriodMinutes min @ruleSummary.GracePeriodSeconds sec</strong>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="rule-item">
+                    <span>Late if time-in after</span>
+                    <strong class="text-danger">@ruleSummary.LateThreshold</strong>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="rule-item">
+                    <span>OT credited after</span>
+                    <strong>@ruleSummary.OvertimeThresholdMinutes min</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- ── Time In / Out Panel ─────────────────────────────────────────────────── -->
+@if (currentEmpId > 0)
+{
+    var todayRecord = Model.FirstOrDefault(a => a.AttendanceDate == DateTime.Today && a.EmployeeID == currentEmpId);
+    <div class="card mb-3">
+        <div class="card-header bg-primary-pecci">
+            <i class="fas fa-fingerprint me-1"></i> My Attendance Today — @DateTime.Today.ToString("dddd, MMMM dd, yyyy")
+        </div>
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-4 text-center mb-3 mb-md-0">
+                    <div id="liveClock" style="font-size:2rem;font-weight:700;color:var(--pecci-blue);font-family:monospace;"></div>
+                    <div class="text-muted small">Current Time (Philippine Standard Time)</div>
+                </div>
+                <div class="col-md-4 text-center mb-3 mb-md-0">
+                    <div class="small text-muted mb-1">Time In</div>
+                    <div style="font-size:1.4rem;font-weight:700;color:var(--pecci-success);">
+                        @(todayRecord?.TimeIn.HasValue == true ? todayRecord.TimeIn.Value.ToString(@"hh\:mm\:ss") : "—")
+                    </div>
+                    @if (todayRecord?.IsLate == true)
+                    {
+                        <span class="status-badge badge-late">Late @todayRecord.LateMinutes?.ToString("F0") min</span>
+                    }
+                </div>
+                <div class="col-md-4 text-center">
+                    <div class="small text-muted mb-1">Time Out</div>
+                    <div style="font-size:1.4rem;font-weight:700;color:var(--pecci-red);">
+                        @(todayRecord?.TimeOut.HasValue == true ? todayRecord.TimeOut.Value.ToString(@"hh\:mm\:ss") : "—")
+                    </div>
+                    @if (todayRecord?.HasOvertime == true)
+                    {
+                        <span class="status-badge badge-approved">OT @todayRecord.OvertimeMinutes?.ToString("F0") min</span>
+                    }
+                </div>
+            </div>
+            <hr />
+            <div class="d-flex gap-2 justify-content-center flex-wrap">
+                @if (todayRecord?.TimeIn == null)
+                {
+                    <form asp-action="TimeIn" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="employeeId" value="@currentEmpId" />
+                        <button type="submit" class="btn btn-pecci-primary btn-lg px-4">
+                            <i class="fas fa-sign-in-alt me-2"></i> Time In
+                        </button>
+                    </form>
+                }
+                else if (todayRecord?.TimeOut == null)
+                {
+                    <form asp-action="TimeOut" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="employeeId" value="@currentEmpId" />
+                        <button type="submit" class="btn btn-pecci-danger btn-lg px-4">
+                            <i class="fas fa-sign-out-alt me-2"></i> Time Out
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <div class="alert alert-success mb-0 py-2 px-4">
+                        <i class="fas fa-check-circle me-2"></i>
+                        Attendance complete. Total: <strong>@todayRecord.TotalHoursWorked?.ToString("F2") hrs</strong>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+<!-- ── Filters ─────────────────────────────────────────────────────────────── -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            @if (isHR)
+            {
+                <div class="col-md-3">
+                    <label class="form-label small mb-1">Employee</label>
+                    <select name="employeeId" class="form-select form-select-sm">
+                        <option value="">All Employees</option>
+                        @foreach (var emp in (List<PECCI_HRIS.Models.Employee>)ViewBag.Employees)
+                        {
+                            <option value="@emp.EmployeeID" selected="@(ViewBag.EmployeeId?.ToString() == emp.EmployeeID.ToString())">
+                                @emp.FullName
+                            </option>
+                        }
+                    </select>
+                </div>
+            }
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Date From</label>
+                <input type="date" name="dateFrom" class="form-control form-control-sm" value="@ViewBag.DateFrom" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Date To</label>
+                <input type="date" name="dateTo" class="form-control form-control-sm" value="@ViewBag.DateTo" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Status</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All</option>
+                    <option value="Present"  selected="@(ViewBag.Status == "Present")">Present</option>
+                    <option value="Late"     selected="@(ViewBag.Status == "Late")">Late</option>
+                    <option value="Absent"   selected="@(ViewBag.Status == "Absent")">Absent</option>
+                    <option value="On Leave" selected="@(ViewBag.Status == "On Leave")">On Leave</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-pecci-primary btn-sm w-100">
+                    <i class="fas fa-search me-1"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ── Records Table ───────────────────────────────────────────────────────── -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-list me-1"></i> Attendance Records
+        <span class="badge bg-secondary ms-2">@Model.Count() records</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-pecci mb-0">
+                <thead>
+                    <tr>
+                        @if (isHR) { <th>Employee</th> }
+                        <th>Date</th>
+                        <th>Time In</th>
+                        <th>Time Out</th>
+                        <th>Hours Worked</th>
+                        <th>Late (min)</th>
+                        <th>Overtime (min)</th>
+                        <th>Status</th>
+                        <th>Remarks</th>
+                        @if (isHR) { <th>Actions</th> }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model)
+                    {
+                        <tr>
+                            @if (isHR)
+                            {
+                                <td>
+                                    <div class="fw-semibold">@r.Employee?.FullName</div>
+                                    <div class="text-muted small">@r.Employee?.Department?.DepartmentName</div>
+                                </td>
+                            }
+                            <td>@r.AttendanceDate.ToString("MM/dd/yyyy (ddd)")</td>
+                            <td class="@(r.IsLate ? "text-danger fw-semibold" : "")">
+                                @(r.TimeIn.HasValue ? r.TimeIn.Value.ToString(@"hh\:mm\:ss") : "—")
+                            </td>
+                            <td>@(r.TimeOut.HasValue ? r.TimeOut.Value.ToString(@"hh\:mm\:ss") : "—")</td>
+                            <td>@(r.TotalHoursWorked.HasValue ? r.TotalHoursWorked.Value.ToString("F2") : "—")</td>
+                            <td class="@(r.LateMinutes > 0 ? "text-danger" : "")">
+                                @(r.LateMinutes > 0 ? r.LateMinutes.Value.ToString("F0") : "—")
+                            </td>
+                            <td class="@(r.OvertimeMinutes > 0 ? "text-success" : "")">
+                                @(r.OvertimeMinutes > 0 ? r.OvertimeMinutes.Value.ToString("F0") : "—")
+                            </td>
+                            <td>
+                                @{
+                                    var badgeClass = r.AttendanceStatus switch {
+                                        "Present"  => "badge-present",
+                                        "Late"     => "badge-late",
+                                        "Absent"   => "badge-absent",
+                                        "On Leave" => "badge-on-leave",
+                                        "Holiday"  => "badge-holiday",
+                                        _ => "badge-present"
+                                    };
+                                }
+                                <span class="status-badge @badgeClass">@r.AttendanceStatus</span>
+                                @if (r.IsManualEntry)
+                                {
+                                    <span class="ms-1" title="Manually adjusted"><i class="fas fa-edit text-muted" style="font-size:0.7rem;"></i></span>
+                                }
+                            </td>
+                            <td class="text-muted small">@r.Remarks</td>
+                            @if (isHR)
+                            {
+                                <td>
+                                    <a asp-action="Adjust" asp-route-id="@r.AttendanceID"
+                                       class="btn btn-sm btn-outline-warning" title="Adjust">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                </td>
+                            }
+                        </tr>
+                    }
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="12" class="text-center text-muted py-4">
+                                <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                                No attendance records found.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Credits -->
+<div class="mt-3 text-center text-muted no-print" style="font-size:0.72rem;">
+    <i class="fas fa-code me-1"></i>
+    Developed by <strong>UST Interns</strong>:
+    Arkin Reinier Aguilar &bull; Maxenne De Guzman &bull; Bernice Elyssa Soriano &bull; Emily Etea
+</div>
+
+@section Scripts {
+<script>
+    function updateClock() {
+        const now = new Date();
+        const h = String(now.getHours()).padStart(2,'0');
+        const m = String(now.getMinutes()).padStart(2,'0');
+        const s = String(now.getSeconds()).padStart(2,'0');
+        const el = document.getElementById('liveClock');
+        if (el) el.textContent = `${h}:${m}:${s}`;
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+</script>
+}

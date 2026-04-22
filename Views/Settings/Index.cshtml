@@ -1,0 +1,302 @@
+@model PECCI_HRIS.ViewModels.SystemSettingViewModel
+@{
+    ViewData["Title"] = "System Settings";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-sliders-h me-2"></i>System Settings</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-controller="Dashboard" asp-action="Index">Dashboard</a></li>
+                <li class="breadcrumb-item active">Settings</li>
+            </ol>
+        </nav>
+    </div>
+    <button class="btn btn-pecci-primary" onclick="saveAllSettings()">
+        <i class="fas fa-save me-1"></i> Save All Changes
+    </button>
+</div>
+
+<form id="settingsForm" asp-action="BulkUpdate" method="post">
+    @Html.AntiForgeryToken()
+
+    <div class="row">
+        <!-- Left column -->
+        <div class="col-lg-8">
+
+            <!-- ── Attendance Settings ──────────────────────────────────────── -->
+            <div class="setting-group-card">
+                <div class="setting-group-header">
+                    <i class="fas fa-clock"></i> Attendance & Timekeeping Rules
+                </div>
+                <div class="setting-group-body">
+
+                    <!-- Live Rule Preview -->
+                    <div class="rule-preview mt-2" id="rulePreview">
+                        <div class="rule-title"><i class="fas fa-info-circle me-1"></i> Current Rules Preview</div>
+                        <div class="rule-item">
+                            <span>Work Hours</span>
+                            <strong id="previewWorkHours">@Model.AttendanceSettings.FirstOrDefault(s => s.SettingKey == "WorkStartTime")?.SettingValue – @Model.AttendanceSettings.FirstOrDefault(s => s.SettingKey == "WorkEndTime")?.SettingValue</strong>
+                        </div>
+                        <div class="rule-item">
+                            <span>Grace Period</span>
+                            <strong id="previewGrace">@Model.AttendanceSettings.FirstOrDefault(s => s.SettingKey == "GracePeriodMinutes")?.SettingValue min @Model.AttendanceSettings.FirstOrDefault(s => s.SettingKey == "GracePeriodSeconds")?.SettingValue sec</strong>
+                        </div>
+                        <div class="rule-item">
+                            <span>Late Threshold (time-in after this = LATE)</span>
+                            <strong id="previewLateThreshold" class="text-danger">@Model.LateThresholdDisplay</strong>
+                        </div>
+                        <div class="rule-item">
+                            <span>Working Hours/Day</span>
+                            <strong id="previewWorkHoursDay">@Model.WorkingHoursDisplay</strong>
+                        </div>
+                        <div class="rule-item">
+                            <span>Overtime credited after</span>
+                            <strong id="previewOT">@Model.AttendanceSettings.FirstOrDefault(s => s.SettingKey == "OvertimeThresholdMinutes")?.SettingValue min beyond work end</strong>
+                        </div>
+                    </div>
+
+                    @foreach (var s in Model.AttendanceSettings)
+                    {
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <div class="setting-key">@s.SettingKey.Replace("_", " ")</div>
+                                <div class="setting-desc">@s.Description</div>
+                            </div>
+                            <div class="setting-input">
+                                @if (!string.IsNullOrEmpty(s.AllowedValues))
+                                {
+                                    <select name="@s.SettingID" class="form-select form-select-sm setting-control"
+                                            data-key="@s.SettingKey" data-type="@s.DataType"
+                                            @(s.IsEditable ? "" : "disabled")>
+                                        @foreach (var opt in s.AllowedValues.Split(','))
+                                        {
+                                            <option value="@opt" selected="@(s.SettingValue == opt)">@opt</option>
+                                        }
+                                    </select>
+                                }
+                                else
+                                {
+                                    <input type="@(s.DataType == "bool" ? "checkbox" : "text")"
+                                           name="@s.SettingID"
+                                           value="@s.SettingValue"
+                                           class="form-control form-control-sm setting-control"
+                                           data-key="@s.SettingKey"
+                                           data-type="@s.DataType"
+                                           @(s.IsEditable ? "" : "readonly disabled")
+                                           placeholder="@s.DataType" />
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- ── Payroll Settings ────────────────────────────────────────── -->
+            <div class="setting-group-card">
+                <div class="setting-group-header">
+                    <i class="fas fa-money-bill-wave"></i> Payroll Computation Rules
+                </div>
+                <div class="setting-group-body">
+                    @foreach (var s in Model.PayrollSettings)
+                    {
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <div class="setting-key">@s.SettingKey.Replace("_", " ")</div>
+                                <div class="setting-desc">@s.Description</div>
+                            </div>
+                            <div class="setting-input">
+                                <input type="text" name="@s.SettingID" value="@s.SettingValue"
+                                       class="form-control form-control-sm"
+                                       data-key="@s.SettingKey" data-type="@s.DataType"
+                                       @(s.IsEditable ? "" : "readonly disabled") />
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- ── Tax / Government Contributions ────────────────────────── -->
+            <div class="setting-group-card">
+                <div class="setting-group-header">
+                    <i class="fas fa-landmark"></i> Tax & Government Contributions (BIR / SSS / PhilHealth / Pag-IBIG)
+                </div>
+                <div class="setting-group-body">
+                    <div class="alert alert-info alert-pecci py-2 mb-3 small">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Tax computation follows <strong>BIR TRAIN Law (RA 10963)</strong> — RR 2-2023 (effective Jan 1, 2023).
+                        SSS, PhilHealth, and Pag-IBIG rates follow the latest government-mandated schedules.
+                    </div>
+                    @foreach (var s in Model.TaxSettings)
+                    {
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <div class="setting-key">@s.SettingKey.Replace("_", " ")</div>
+                                <div class="setting-desc">@s.Description</div>
+                            </div>
+                            <div class="setting-input">
+                                @if (!string.IsNullOrEmpty(s.AllowedValues))
+                                {
+                                    <select name="@s.SettingID" class="form-select form-select-sm"
+                                            data-key="@s.SettingKey" @(s.IsEditable ? "" : "disabled")>
+                                        @foreach (var opt in s.AllowedValues.Split(','))
+                                        {
+                                            <option value="@opt" selected="@(s.SettingValue == opt)">@opt</option>
+                                        }
+                                    </select>
+                                }
+                                else
+                                {
+                                    <input type="text" name="@s.SettingID" value="@s.SettingValue"
+                                           class="form-control form-control-sm"
+                                           @(s.IsEditable ? "" : "readonly disabled") />
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Right column: BIR Tax Table Reference -->
+        <div class="col-lg-4">
+            <div class="card mb-3">
+                <div class="card-header">
+                    <i class="fas fa-table me-1"></i> BIR TRAIN Law Tax Table (2023)
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0" style="font-size:0.75rem;">
+                        <thead>
+                            <tr style="background:var(--pecci-blue);color:white;">
+                                <th class="px-3 py-2">Annual Taxable Income</th>
+                                <th class="px-3 py-2">Tax</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td class="px-3 py-1">Up to ₱250,000</td><td class="px-3 py-1 text-success fw-bold">Exempt</td></tr>
+                            <tr class="table-light"><td class="px-3 py-1">₱250,001 – ₱400,000</td><td class="px-3 py-1">15% of excess over ₱250K</td></tr>
+                            <tr><td class="px-3 py-1">₱400,001 – ₱800,000</td><td class="px-3 py-1">₱22,500 + 20% of excess over ₱400K</td></tr>
+                            <tr class="table-light"><td class="px-3 py-1">₱800,001 – ₱2,000,000</td><td class="px-3 py-1">₱102,500 + 25% of excess over ₱800K</td></tr>
+                            <tr><td class="px-3 py-1">₱2,000,001 – ₱8,000,000</td><td class="px-3 py-1">₱402,500 + 30% of excess over ₱2M</td></tr>
+                            <tr class="table-light"><td class="px-3 py-1">Over ₱8,000,000</td><td class="px-3 py-1">₱2,202,500 + 35% of excess over ₱8M</td></tr>
+                        </tbody>
+                    </table>
+                    <div class="px-3 py-2 text-muted" style="font-size:0.7rem;">
+                        Source: BIR Revenue Regulations No. 2-2023 (RA 10963 TRAIN Law)
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-header">
+                    <i class="fas fa-shield-alt me-1"></i> Gov't Contribution Reference
+                </div>
+                <div class="card-body" style="font-size:0.78rem;">
+                    <div class="mb-2">
+                        <strong class="text-primary">SSS (2026)</strong><br>
+                        Employee: 4.5% of MSC<br>
+                        MSC range: ₱4,000 – ₱30,000
+                    </div>
+                    <div class="mb-2">
+                        <strong class="text-primary">PhilHealth (2026)</strong><br>
+                        Employee: 2.5% of basic salary<br>
+                        Min: ₱500 | Max: ₱5,000/month
+                    </div>
+                    <div>
+                        <strong class="text-primary">Pag-IBIG (HDMF)</strong><br>
+                        ≤ ₱1,500 salary: 1%<br>
+                        > ₱1,500 salary: 2%<br>
+                        Max employee share: ₱100/month
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-clock me-1"></i> Attendance Rule Guide
+                </div>
+                <div class="card-body" style="font-size:0.78rem;">
+                    <div class="mb-2">
+                        <strong>Grace Period Logic:</strong><br>
+                        Work Start + Grace Period Minutes + Grace Period Seconds = <span class="text-danger fw-bold">Late Threshold</span>
+                    </div>
+                    <div class="mb-2">
+                        <strong>Example (default):</strong><br>
+                        08:00 + 5 min + 0 sec = <span class="text-danger">08:05:00</span><br>
+                        ✅ 08:05:00 → <span class="text-success">On time</span><br>
+                        ❌ 08:05:01 → <span class="text-danger">LATE</span>
+                    </div>
+                    <div>
+                        <strong>Late Deduction:</strong><br>
+                        If set to 0, system auto-computes from employee's daily rate.<br>
+                        Daily rate = Monthly ÷ 22 working days.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2 mb-4 no-print">
+        <button type="submit" class="btn btn-pecci-primary">
+            <i class="fas fa-save me-1"></i> Save All Settings
+        </button>
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="fas fa-undo me-1"></i> Reset
+        </a>
+    </div>
+</form>
+
+@section Scripts {
+<script>
+    // Live preview update when attendance settings change
+    function updatePreview() {
+        const get = key => document.querySelector(`[data-key="${key}"]`)?.value ?? '';
+
+        const workStart = get('WorkStartTime');
+        const workEnd   = get('WorkEndTime');
+        const graceMins = parseInt(get('GracePeriodMinutes')) || 0;
+        const graceSecs = parseInt(get('GracePeriodSeconds')) || 0;
+        const otThresh  = get('OvertimeThresholdMinutes');
+        const lunchMins = parseInt(get('LunchBreakDurationMinutes')) || 60;
+
+        // Compute late threshold
+        if (workStart) {
+            const [h, m] = workStart.split(':').map(Number);
+            const totalSecs = h * 3600 + m * 60 + graceMins * 60 + graceSecs;
+            const th = Math.floor(totalSecs / 3600);
+            const tm = Math.floor((totalSecs % 3600) / 60);
+            const ts = totalSecs % 60;
+            const pad = n => String(n).padStart(2, '0');
+            document.getElementById('previewLateThreshold').textContent =
+                `${pad(th)}:${pad(tm)}:${pad(ts)}`;
+        }
+
+        document.getElementById('previewWorkHours').textContent =
+            `${workStart || '?'} – ${workEnd || '?'}`;
+        document.getElementById('previewGrace').textContent =
+            `${graceMins} min ${graceSecs} sec`;
+        document.getElementById('previewOT').textContent =
+            `${otThresh || '?'} min beyond work end`;
+
+        // Working hours
+        if (workStart && workEnd) {
+            const toMins = t => { const [h,m] = t.split(':').map(Number); return h*60+m; };
+            const wh = (toMins(workEnd) - toMins(workStart) - lunchMins) / 60;
+            document.getElementById('previewWorkHoursDay').textContent =
+                `${wh.toFixed(1)} hours/day`;
+        }
+    }
+
+    document.querySelectorAll('.setting-control').forEach(el => {
+        el.addEventListener('input', updatePreview);
+        el.addEventListener('change', updatePreview);
+    });
+
+    function saveAllSettings() {
+        document.getElementById('settingsForm').submit();
+    }
+</script>
+}

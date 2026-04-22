@@ -1,0 +1,33 @@
+## .NET / ASP.NET Core
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.vscode/
+
+## Published output
+publish/
+out/
+
+## NuGet
+*.nupkg
+packages/
+project.lock.json
+
+## Sensitive config — keep connection strings LOCAL, never push these
+appsettings.json
+appsettings.Development.json
+appsettings.Production.json
+secrets.json
+
+## EF Core migrations (optional — remove this line if you WANT to push migrations)
+# Migrations/
+
+## Logs
+*.log
+Logs/
+
+## OS files
+.DS_Store
+Thumbs.db

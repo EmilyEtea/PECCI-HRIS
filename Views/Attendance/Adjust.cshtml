@@ -1,0 +1,177 @@
+@model PECCI_HRIS.Models.AttendanceRecord
+@using PECCI_HRIS.Services
+@{
+    ViewData["Title"] = "Adjust Attendance";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var ruleSummary = ViewBag.RuleSummary as AttendanceRuleSummary;
+}
+
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-edit me-2"></i>Manual Attendance Adjustment</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Dashboard" asp-action="Index">Dashboard</a></li>
+                <li class="breadcrumb-item"><a asp-action="Index">Attendance</a></li>
+                <li class="breadcrumb-item active">Adjust</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header bg-primary-pecci">
+                <i class="fas fa-user-clock me-1"></i>
+                @Model.Employee?.FullName — @Model.AttendanceDate.ToString("MMMM dd, yyyy (dddd)")
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning alert-pecci py-2 mb-3 small">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    This is a <strong>manual adjustment</strong>. All changes are logged in the audit trail.
+                    The system will <strong>recompute</strong> late minutes, overtime, and hours worked automatically.
+                </div>
+
+                <form asp-action="Adjust" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="AttendanceID" />
+                    <input type="hidden" asp-for="EmployeeID" />
+                    <input type="hidden" asp-for="AttendanceDate" />
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Time In</label>
+                            <input type="time" asp-for="TimeIn" class="form-control" step="1"
+                                   value="@Model.TimeIn?.ToString(@"hh\:mm\:ss")" />
+                            <div class="form-text">
+                                Late threshold: <strong class="text-danger">@ruleSummary?.LateThreshold</strong>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Time Out</label>
+                            <input type="time" asp-for="TimeOut" class="form-control" step="1"
+                                   value="@Model.TimeOut?.ToString(@"hh\:mm\:ss")" />
+                            <div class="form-text">
+                                OT threshold: <strong>@ruleSummary?.OvertimeThresholdMinutes min after @ruleSummary?.WorkEnd</strong>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Status Override</label>
+                            <select asp-for="AttendanceStatus" class="form-select">
+                                <option value="Present">Present</option>
+                                <option value="Late">Late</option>
+                                <option value="Absent">Absent</option>
+                                <option value="On Leave">On Leave</option>
+                                <option value="Holiday">Holiday</option>
+                                <option value="Half-day">Half-day</option>
+                            </select>
+                            <div class="form-text">Leave blank to let the system auto-determine.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Adjustment Reason <span class="text-danger">*</span></label>
+                            <input type="text" name="remarks" class="form-control"
+                                   placeholder="e.g. Biometric malfunction, forgot to time out"
+                                   value="@Model.Remarks" required />
+                        </div>
+                    </div>
+
+                    <hr />
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-pecci-primary">
+                            <i class="fas fa-save me-1"></i> Save & Recompute
+                        </button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-info-circle me-1"></i> Current Record
+            </div>
+            <div class="card-body" style="font-size:0.85rem;">
+                <table class="table table-sm">
+                    <tr><th>Time In</th><td>@(Model.TimeIn?.ToString(@"hh\:mm\:ss") ?? "—")</td></tr>
+                    <tr><th>Time Out</th><td>@(Model.TimeOut?.ToString(@"hh\:mm\:ss") ?? "—")</td></tr>
+                    <tr><th>Status</th><td><span class="status-badge badge-@Model.AttendanceStatus.ToLower().Replace(" ","-")">@Model.AttendanceStatus</span></td></tr>
+                    <tr><th>Late Minutes</th><td class="@(Model.LateMinutes > 0 ? "text-danger" : "")">@(Model.LateMinutes?.ToString("F0") ?? "0")</td></tr>
+                    <tr><th>Overtime Minutes</th><td class="@(Model.OvertimeMinutes > 0 ? "text-success" : "")">@(Model.OvertimeMinutes?.ToString("F0") ?? "0")</td></tr>
+                    <tr><th>Hours Worked</th><td>@(Model.TotalHoursWorked?.ToString("F2") ?? "—")</td></tr>
+                    <tr><th>Manual Entry</th><td>@(Model.IsManualEntry ? "Yes" : "No")</td></tr>
+                    @if (Model.AdjustedAt.HasValue)
+                    {
+                        <tr><th>Last Adjusted</th><td>@Model.AdjustedAt.Value.ToString("MM/dd/yyyy HH:mm")</td></tr>
+                    }
+                </table>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header"><i class="fas fa-calculator me-1"></i> Recomputation Preview</div>
+            <div class="card-body" style="font-size:0.82rem;">
+                <div id="previewResult" class="text-muted">
+                    Enter time values above to see a preview of the recomputed values.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const workStart = '@ruleSummary?.WorkStart';
+    const workEnd   = '@ruleSummary?.WorkEnd';
+    const lateThreshold = '@ruleSummary?.LateThreshold';
+    const otThreshold   = @(ruleSummary?.OvertimeThresholdMinutes ?? 30);
+    const lunchMins     = @(ruleSummary != null ? (int)(ruleSummary.WorkingHoursPerDay < 8 ? 0 : 60) : 60);
+
+    function toMins(t) {
+        if (!t) return 0;
+        const parts = t.split(':').map(Number);
+        return parts[0]*60 + parts[1] + (parts[2] || 0)/60;
+    }
+
+    function preview() {
+        const timeIn  = document.querySelector('[name="TimeIn"]')?.value;
+        const timeOut = document.querySelector('[name="TimeOut"]')?.value;
+        if (!timeIn) { document.getElementById('previewResult').innerHTML = '<span class="text-muted">Enter time-in to preview.</span>'; return; }
+
+        const [lh, lm, ls] = lateThreshold.split(':').map(Number);
+        const lateThreshMins = lh*60 + lm + (ls||0)/60;
+        const timeInMins = toMins(timeIn);
+        const workStartMins = toMins(workStart);
+        const workEndMins   = toMins(workEnd);
+
+        let html = '';
+        const isLate = timeInMins > lateThreshMins;
+        const lateMins = isLate ? Math.ceil(timeInMins - workStartMins) : 0;
+
+        html += `<div class="mb-1"><strong>Late:</strong> <span class="${isLate ? 'text-danger' : 'text-success'}">${isLate ? lateMins + ' min' : 'None'}</span></div>`;
+
+        if (timeOut) {
+            const timeOutMins = toMins(timeOut);
+            let worked = timeOutMins - timeInMins - lunchMins;
+            if (worked < 0) worked = 0;
+            const otMins = timeOutMins > workEndMins ? Math.floor(timeOutMins - workEndMins) : 0;
+            const creditedOT = otMins >= otThreshold ? otMins : 0;
+            const undertime = timeOutMins < workEndMins ? Math.ceil(workEndMins - timeOutMins) : 0;
+
+            html += `<div class="mb-1"><strong>Hours Worked:</strong> ${(worked/60).toFixed(2)} hrs</div>`;
+            html += `<div class="mb-1"><strong>Overtime:</strong> <span class="${creditedOT > 0 ? 'text-success' : ''}">${creditedOT > 0 ? creditedOT + ' min (credited)' : otMins > 0 ? otMins + ' min (below threshold)' : 'None'}</span></div>`;
+            html += `<div class="mb-1"><strong>Undertime:</strong> <span class="${undertime > 0 ? 'text-warning' : ''}">${undertime > 0 ? undertime + ' min' : 'None'}</span></div>`;
+        }
+
+        document.getElementById('previewResult').innerHTML = html;
+    }
+
+    document.querySelector('[name="TimeIn"]')?.addEventListener('input', preview);
+    document.querySelector('[name="TimeOut"]')?.addEventListener('input', preview);
+    preview();
+</script>
+}
