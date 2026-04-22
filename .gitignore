@@ -1,33 +1,55 @@
-## .NET / ASP.NET Core
-bin/
-obj/
-*.user
-*.suo
+## Visual Studio / VS Code
 .vs/
 .vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
 
-## Published output
-publish/
-out/
+## Build output
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
 
 ## NuGet
 *.nupkg
+*.snupkg
 packages/
 project.lock.json
+project.fragment.lock.json
+artifacts/
 
-## Sensitive config — keep connection strings LOCAL, never push these
+## .NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+## ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+## Publish
+publish/
+**/Properties/PublishProfiles/
+
+## ============================================================
+## SENSITIVE — connection strings stay LOCAL, never pushed
+## ============================================================
 appsettings.json
 appsettings.Development.json
 appsettings.Production.json
+appsettings.Staging.json
 secrets.json
+**/secrets.json
 
-## EF Core migrations (optional — remove this line if you WANT to push migrations)
-# Migrations/
-
-## Logs
-*.log
-Logs/
-
-## OS files
+## OS
 .DS_Store
 Thumbs.db
+desktop.ini
