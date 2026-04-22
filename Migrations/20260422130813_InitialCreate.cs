@@ -129,7 +129,7 @@ namespace PECCI_HRIS.Migrations
                         column: x => x.DepartmentID,
                         principalTable: "Departments",
                         principalColumn: "DepartmentID",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -199,13 +199,13 @@ namespace PECCI_HRIS.Migrations
                         column: x => x.DepartmentID,
                         principalTable: "Departments",
                         principalColumn: "DepartmentID",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Employees_Positions_PositionID",
                         column: x => x.PositionID,
                         principalTable: "Positions",
                         principalColumn: "PositionID",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -239,7 +239,7 @@ namespace PECCI_HRIS.Migrations
                         column: x => x.EmployeeID,
                         principalTable: "Employees",
                         principalColumn: "EmployeeID",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -252,7 +252,7 @@ namespace PECCI_HRIS.Migrations
                     LeaveTypeID = table.Column<int>(type: "int", nullable: false),
                     StartDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     EndDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    NumberOfDays = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    NumberOfDays = table.Column<decimal>(type: "decimal(5,1)", nullable: false),
                     Reason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     ManagerApproverID = table.Column<int>(type: "int", nullable: true),
@@ -272,13 +272,13 @@ namespace PECCI_HRIS.Migrations
                         column: x => x.EmployeeID,
                         principalTable: "Employees",
                         principalColumn: "EmployeeID",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_LeaveApplications_LeaveTypes_LeaveTypeID",
                         column: x => x.LeaveTypeID,
                         principalTable: "LeaveTypes",
                         principalColumn: "LeaveTypeID",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -304,13 +304,13 @@ namespace PECCI_HRIS.Migrations
                         column: x => x.EmployeeID,
                         principalTable: "Employees",
                         principalColumn: "EmployeeID",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_LeaveCredits_LeaveTypes_LeaveTypeID",
                         column: x => x.LeaveTypeID,
                         principalTable: "LeaveTypes",
                         principalColumn: "LeaveTypeID",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -358,7 +358,7 @@ namespace PECCI_HRIS.Migrations
                         column: x => x.EmployeeID,
                         principalTable: "Employees",
                         principalColumn: "EmployeeID",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -383,7 +383,8 @@ namespace PECCI_HRIS.Migrations
                         name: "FK_Users_Employees_EmployeeID",
                         column: x => x.EmployeeID,
                         principalTable: "Employees",
-                        principalColumn: "EmployeeID");
+                        principalColumn: "EmployeeID",
+                        onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
                         name: "FK_Users_Roles_RoleID",
                         column: x => x.RoleID,
@@ -460,11 +461,6 @@ namespace PECCI_HRIS.Migrations
                     { 33, null, "decimal", "Pag-IBIG maximum monthly employee contribution (₱100)", true, "Tax", "PagIbigMaxContribution", "100.00", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null },
                     { 34, "BIR_TRAIN_LAW_2023,BIR_TRAIN_LAW_2018", "string", "BIR withholding tax table to use", true, "Tax", "TaxTableType", "BIR_TRAIN_LAW_2023", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null }
                 });
-
-            migrationBuilder.InsertData(
-                table: "Users",
-                columns: new[] { "UserID", "CreatedAt", "Email", "EmployeeID", "IsActive", "LastLogin", "PasswordHash", "RoleID", "Username" },
-                values: new object[] { 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "admin@pecci.com.ph", null, true, null, "$2a$11$tsh8VDq9WXqELUcBGotmIu5k.tvAIy0MJ6uZcsb9pfAHEWwT.5UvS", 1, "admin" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_AttendanceRecords_EmployeeID",

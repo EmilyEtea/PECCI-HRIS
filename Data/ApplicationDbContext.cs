@@ -24,6 +24,12 @@ namespace PECCI_HRIS.Data
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<SystemSetting> SystemSettings { get; set; }
 
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            optionsBuilder.ConfigureWarnings(w =>
+                w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+        }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -40,6 +46,67 @@ namespace PECCI_HRIS.Data
 
             modelBuilder.Entity<LeaveCredit>()
                 .HasIndex(lc => new { lc.EmployeeID, lc.LeaveTypeID, lc.Year }).IsUnique();
+
+            // Fix cascade delete cycles (SQL Server error 1785)
+            modelBuilder.Entity<Employee>()
+                .HasOne(e => e.Department)
+                .WithMany(d => d.Employees)
+                .HasForeignKey(e => e.DepartmentID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Employee>()
+                .HasOne(e => e.Position)
+                .WithMany(p => p.Employees)
+                .HasForeignKey(e => e.PositionID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Position>()
+                .HasOne(p => p.Department)
+                .WithMany(d => d.Positions)
+                .HasForeignKey(p => p.DepartmentID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<AttendanceRecord>()
+                .HasOne(a => a.Employee)
+                .WithMany(e => e.AttendanceRecords)
+                .HasForeignKey(a => a.EmployeeID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<LeaveApplication>()
+                .HasOne(l => l.Employee)
+                .WithMany(e => e.LeaveApplications)
+                .HasForeignKey(l => l.EmployeeID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<LeaveApplication>()
+                .HasOne(l => l.LeaveType)
+                .WithMany(lt => lt.LeaveApplications)
+                .HasForeignKey(l => l.LeaveTypeID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<LeaveCredit>()
+                .HasOne(lc => lc.Employee)
+                .WithMany(e => e.LeaveCredits)
+                .HasForeignKey(lc => lc.EmployeeID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<LeaveCredit>()
+                .HasOne(lc => lc.LeaveType)
+                .WithMany(lt => lt.LeaveCredits)
+                .HasForeignKey(lc => lc.LeaveTypeID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<PayrollRecord>()
+                .HasOne(p => p.Employee)
+                .WithMany(e => e.PayrollRecords)
+                .HasForeignKey(p => p.EmployeeID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<User>()
+                .HasOne(u => u.Employee)
+                .WithOne(e => e.UserAccount)
+                .HasForeignKey<User>(u => u.EmployeeID)
+                .OnDelete(DeleteBehavior.SetNull);
 
             // Decimal precision
             modelBuilder.Entity<Position>()
@@ -86,6 +153,9 @@ namespace PECCI_HRIS.Data
                 .Property(lc => lc.UsedCredits).HasColumnType("decimal(5,1)");
             modelBuilder.Entity<LeaveCredit>()
                 .Property(lc => lc.PendingCredits).HasColumnType("decimal(5,1)");
+
+            modelBuilder.Entity<LeaveApplication>()
+                .Property(la => la.NumberOfDays).HasColumnType("decimal(5,1)");
 
             // Seed data
             SeedData(modelBuilder);
@@ -137,19 +207,8 @@ namespace PECCI_HRIS.Data
                 new Role { RoleID = 4, RoleName = "Employee", Description = "Self-service access", IsActive = true }
             );
 
-            // Seed default admin user (password: Admin@123)
-            modelBuilder.Entity<User>().HasData(
-                new User
-                {
-                    UserID = 1,
-                    Username = "admin",
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
-                    Email = "admin@pecci.com.ph",
-                    RoleID = 1,
-                    IsActive = true,
-                    CreatedAt = new DateTime(2026, 1, 1)
-                }
-            );
+            // NOTE: Default admin user is seeded in Program.cs after migration
+            // to avoid non-deterministic BCrypt hash in HasData()
 
             // Seed Departments
             modelBuilder.Entity<Department>().HasData(

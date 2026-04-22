@@ -8,7 +8,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // ── Database ─────────────────────────────────────────────────────────────────
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+           .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
 
 // ── Strongly-typed settings ───────────────────────────────────────────────────
 builder.Services.Configure<AttendanceSettings>(
@@ -64,11 +65,26 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Account}/{action=Login}/{id?}");
 
-// ── Auto-migrate on startup ───────────────────────────────────────────────────
+// ── Auto-migrate and seed on startup ─────────────────────────────────────────
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
     db.Database.Migrate();
+
+    // Seed default admin user if not exists (done here to avoid BCrypt non-determinism in HasData)
+    if (!db.Users.Any(u => u.Username == "admin"))
+    {
+        db.Users.Add(new PECCI_HRIS.Models.User
+        {
+            Username     = "admin",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
+            Email        = "admin@pecci.com.ph",
+            RoleID       = 1,
+            IsActive     = true,
+            CreatedAt    = DateTime.Now
+        });
+        db.SaveChanges();
+    }
 }
 
 app.Run();

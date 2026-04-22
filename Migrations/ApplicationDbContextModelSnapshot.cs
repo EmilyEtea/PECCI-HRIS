@@ -381,7 +381,7 @@ namespace PECCI_HRIS.Migrations
                         .HasColumnType("nvarchar(300)");
 
                     b.Property<decimal>("NumberOfDays")
-                        .HasColumnType("decimal(18,2)");
+                        .HasColumnType("decimal(5,1)");
 
                     b.Property<string>("Reason")
                         .HasMaxLength(500)
@@ -1189,18 +1189,6 @@ namespace PECCI_HRIS.Migrations
                         .IsUnique();
 
                     b.ToTable("Users");
-
-                    b.HasData(
-                        new
-                        {
-                            UserID = 1,
-                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Email = "admin@pecci.com.ph",
-                            IsActive = true,
-                            PasswordHash = "$2a$11$tsh8VDq9WXqELUcBGotmIu5k.tvAIy0MJ6uZcsb9pfAHEWwT.5UvS",
-                            RoleID = 1,
-                            Username = "admin"
-                        });
                 });
 
             modelBuilder.Entity("PECCI_HRIS.Models.AttendanceRecord", b =>
@@ -1208,7 +1196,7 @@ namespace PECCI_HRIS.Migrations
                     b.HasOne("PECCI_HRIS.Models.Employee", "Employee")
                         .WithMany("AttendanceRecords")
                         .HasForeignKey("EmployeeID")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Employee");
@@ -1219,13 +1207,13 @@ namespace PECCI_HRIS.Migrations
                     b.HasOne("PECCI_HRIS.Models.Department", "Department")
                         .WithMany("Employees")
                         .HasForeignKey("DepartmentID")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("PECCI_HRIS.Models.Position", "Position")
                         .WithMany("Employees")
                         .HasForeignKey("PositionID")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Department");
@@ -1238,13 +1226,13 @@ namespace PECCI_HRIS.Migrations
                     b.HasOne("PECCI_HRIS.Models.Employee", "Employee")
                         .WithMany("LeaveApplications")
                         .HasForeignKey("EmployeeID")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("PECCI_HRIS.Models.LeaveType", "LeaveType")
                         .WithMany("LeaveApplications")
                         .HasForeignKey("LeaveTypeID")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Employee");
@@ -1257,13 +1245,13 @@ namespace PECCI_HRIS.Migrations
                     b.HasOne("PECCI_HRIS.Models.Employee", "Employee")
                         .WithMany("LeaveCredits")
                         .HasForeignKey("EmployeeID")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("PECCI_HRIS.Models.LeaveType", "LeaveType")
                         .WithMany("LeaveCredits")
                         .HasForeignKey("LeaveTypeID")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Employee");
@@ -1276,7 +1264,7 @@ namespace PECCI_HRIS.Migrations
                     b.HasOne("PECCI_HRIS.Models.Employee", "Employee")
                         .WithMany("PayrollRecords")
                         .HasForeignKey("EmployeeID")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Employee");
@@ -1287,7 +1275,7 @@ namespace PECCI_HRIS.Migrations
                     b.HasOne("PECCI_HRIS.Models.Department", "Department")
                         .WithMany("Positions")
                         .HasForeignKey("DepartmentID")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Department");
@@ -1308,7 +1296,8 @@ namespace PECCI_HRIS.Migrations
                 {
                     b.HasOne("PECCI_HRIS.Models.Employee", "Employee")
                         .WithOne("UserAccount")
-                        .HasForeignKey("PECCI_HRIS.Models.User", "EmployeeID");
+                        .HasForeignKey("PECCI_HRIS.Models.User", "EmployeeID")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("PECCI_HRIS.Models.Role", "Role")
                         .WithMany("Users")
