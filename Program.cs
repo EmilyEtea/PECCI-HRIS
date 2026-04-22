@@ -65,14 +65,15 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Account}/{action=Login}/{id?}");
 
-// ── Auto-migrate and seed on startup ─────────────────────────────────────────
+// ── Seed admin user on startup ───────────────────────────────────────────────
+// Migrations are applied via CLI: dotnet ef database update
+// This block only seeds the default admin user if it doesn't exist yet.
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.Migrate();
 
-    // Seed default admin user if not exists (done here to avoid BCrypt non-determinism in HasData)
-    if (!db.Users.Any(u => u.Username == "admin"))
+    // Seed default admin user (password: Admin@123)
+    if (db.Database.CanConnect() && !db.Users.Any(u => u.Username == "admin"))
     {
         db.Users.Add(new PECCI_HRIS.Models.User
         {
