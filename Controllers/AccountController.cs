@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PECCI_HRIS.Data;
@@ -99,5 +100,19 @@ namespace PECCI_HRIS.Controllers
         }
 
         public IActionResult AccessDenied() => View();
+
+        [Authorize]
+        public async Task<IActionResult> Profile()
+        {
+            int userId = GetCurrentUserID();
+            var user = await _context.Users
+                .Include(u => u.Role)
+                .Include(u => u.Employee).ThenInclude(e => e!.Department)
+                .Include(u => u.Employee).ThenInclude(e => e!.Position)
+                .FirstOrDefaultAsync(u => u.UserID == userId);
+
+            if (user == null) return NotFound();
+            return View(user);
+        }
     }
 }

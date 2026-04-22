@@ -1,0 +1,100 @@
+@model PECCI_HRIS.ViewModels.LeaveTypeViewModel
+@{
+    ViewData["Title"] = "Add Leave Type";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-tags me-2"></i>Add Leave Type</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Dashboard" asp-action="Index">Dashboard</a></li>
+                <li class="breadcrumb-item"><a asp-action="Types">Leave Types</a></li>
+                <li class="breadcrumb-item active">Add Leave Type</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-plus me-1"></i> New Leave Type
+            </div>
+            <div class="card-body">
+                <form asp-action="CreateType" method="post">
+                    @Html.AntiForgeryToken()
+                    <input asp-for="LeaveTypeID" type="hidden" />
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="LeaveTypeName" class="form-label fw-semibold">
+                            Leave Type Name <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="LeaveTypeName" class="form-control" placeholder="e.g. Vacation Leave" />
+                        <span asp-validation-for="LeaveTypeName" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="LeaveCode" class="form-label fw-semibold">Code</label>
+                        <input asp-for="LeaveCode" class="form-control" placeholder="e.g. VL" maxlength="10" />
+                        <span asp-validation-for="LeaveCode" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Description" class="form-label fw-semibold">Description</label>
+                        <textarea asp-for="Description" class="form-control" rows="3"
+                                  placeholder="Brief description of this leave type..."></textarea>
+                        <span asp-validation-for="Description" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="DefaultDaysPerYear" class="form-label fw-semibold">
+                            Default Days Per Year <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="DefaultDaysPerYear" class="form-control" type="number" min="0" max="365" />
+                        <span asp-validation-for="DefaultDaysPerYear" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="form-check mb-2">
+                            <input asp-for="IsPaid" class="form-check-input" type="checkbox" />
+                            <label asp-for="IsPaid" class="form-check-label fw-semibold">Paid Leave</label>
+                            <div class="form-text">Employee receives pay during this leave.</div>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input asp-for="RequiresApproval" class="form-check-input" type="checkbox" />
+                            <label asp-for="RequiresApproval" class="form-check-label fw-semibold">Requires Approval</label>
+                            <div class="form-text">Leave must be approved by manager/HR before it takes effect.</div>
+                        </div>
+                        <div class="form-check">
+                            <input asp-for="IsActive" class="form-check-input" type="checkbox" />
+                            <label asp-for="IsActive" class="form-check-label fw-semibold">Active</label>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-pecci-primary">
+                            <i class="fas fa-save me-1"></i> Save Leave Type
+                        </button>
+                        <a asp-action="Types" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3 text-center text-muted" style="font-size:0.72rem;">
+    <i class="fas fa-code me-1"></i>
+    Developed by <strong>UST Interns</strong>:
+    Arkin Reinier Aguilar &bull; Maxenne De Guzman &bull; Bernice Elyssa Soriano &bull; Emily Etea
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

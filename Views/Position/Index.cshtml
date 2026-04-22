@@ -1,0 +1,108 @@
+@model IEnumerable<PECCI_HRIS.Models.Position>
+@{
+    ViewData["Title"] = "Positions";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var isHR = User.IsInRole("HR Admin") || User.IsInRole("HR Staff");
+}
+
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-briefcase me-2"></i>Positions</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Dashboard" asp-action="Index">Dashboard</a></li>
+                <li class="breadcrumb-item active">Positions</li>
+            </ol>
+        </nav>
+    </div>
+    @if (isHR)
+    {
+        <a asp-action="Create" class="btn btn-pecci-primary">
+            <i class="fas fa-plus me-1"></i> Add Position
+        </a>
+    }
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-list me-1"></i> Position List
+        <span class="badge ms-2" style="background:var(--pecci-green);">@Model.Count() records</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-pecci mb-0">
+                <thead>
+                    <tr>
+                        <th>Position Title</th>
+                        <th>Code</th>
+                        <th>Department</th>
+                        <th class="text-end">Basic Salary</th>
+                        <th class="text-center">Employees</th>
+                        <th class="text-center">Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var pos in Model)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">@pos.PositionTitle</div>
+                                @if (!string.IsNullOrEmpty(pos.Description))
+                                {
+                                    <div class="text-muted small">@pos.Description</div>
+                                }
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(pos.PositionCode))
+                                {
+                                    <span class="badge" style="background:var(--pecci-orange-pale);color:var(--pecci-orange);font-weight:600;">@pos.PositionCode</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                            <td>@(pos.Department?.DepartmentName ?? "—")</td>
+                            <td class="text-end fw-semibold" style="color:var(--pecci-green);">
+                                ₱@pos.BasicSalary.ToString("N2")
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-secondary">@pos.Employees.Count</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="status-badge @(pos.IsActive ? "badge-active" : "badge-inactive")">
+                                    @(pos.IsActive ? "Active" : "Inactive")
+                                </span>
+                            </td>
+                            <td>
+                                @if (isHR)
+                                {
+                                    <a asp-action="Edit" asp-route-id="@pos.PositionID"
+                                       class="btn btn-sm btn-outline-warning" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-5">
+                                <i class="fas fa-briefcase fa-2x mb-2 d-block opacity-25"></i>
+                                No positions found.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3 text-center text-muted" style="font-size:0.72rem;">
+    <i class="fas fa-code me-1"></i>
+    Developed by <strong>UST Interns</strong>:
+    Arkin Reinier Aguilar &bull; Maxenne De Guzman &bull; Bernice Elyssa Soriano &bull; Emily Etea
+</div>

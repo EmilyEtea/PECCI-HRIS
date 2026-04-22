@@ -72,22 +72,24 @@ A comprehensive web-based HRIS built with ASP.NET Core 8.0, Entity Framework Cor
 
 ## 🎨 UI/UX Design
 
-- **PECCI Brand Colors:**
-  - Primary Blue: `#003087`
-  - Secondary Red: `#C8102E`
-  - Accent Gold: `#F5A623`
-- **Bootstrap 5.3** + custom PECCI theme
+- **PECCI Brand Colors** (from official logo):
+  - Primary Green: `#2E7D32`
+  - Dark Green: `#1B5E20`
+  - Accent Orange: `#E8521A`
+  - Light Green: `#4CAF50`
+- **Bootstrap 5.3** + custom PECCI theme (`pecci-theme.css`)
 - **Font Awesome 6.5** icons
 - **Chart.js** for dashboard visualizations
 - **Responsive design** (mobile-friendly)
+- **PECCI SVG logo** rendered inline in sidebar and login page
 
 ---
 
 ## 🛠️ Technology Stack
 
-- **Framework:** ASP.NET Core 8.0 MVC
-- **ORM:** Entity Framework Core 8.0
-- **Database:** SQL Server (2019+)
+- **Framework:** ASP.NET Core MVC (.NET 10.0)
+- **ORM:** Entity Framework Core 9.0
+- **Database:** SQL Server 2019+ / LocalDB
 - **Authentication:** Cookie-based with BCrypt password hashing
 - **PDF Generation:** iText7
 - **Excel Export:** ClosedXML

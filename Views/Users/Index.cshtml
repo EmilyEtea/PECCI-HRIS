@@ -1,0 +1,120 @@
+@model IEnumerable<PECCI_HRIS.Models.User>
+@{
+    ViewData["Title"] = "User Management";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-user-shield me-2"></i>User Management</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Dashboard" asp-action="Index">Dashboard</a></li>
+                <li class="breadcrumb-item active">Users</li>
+            </ol>
+        </nav>
+    </div>
+    <a asp-action="Create" class="btn btn-pecci-primary">
+        <i class="fas fa-plus me-1"></i> Add User
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-list me-1"></i> System Users
+        <span class="badge ms-2" style="background:var(--pecci-green);">@Model.Count() users</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-pecci mb-0">
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Linked Employee</th>
+                        <th class="text-center">Status</th>
+                        <th>Last Login</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var user in Model)
+                    {
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <div style="width:32px;height:32px;border-radius:50%;background:var(--pecci-green-pale);color:var(--pecci-green);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.75rem;flex-shrink:0;">
+                                        @user.Username.FirstOrDefault().ToString().ToUpper()
+                                    </div>
+                                    <span class="fw-semibold">@user.Username</span>
+                                </div>
+                            </td>
+                            <td class="text-muted small">@user.Email</td>
+                            <td>
+                                <span class="badge" style="background:var(--pecci-green-pale);color:var(--pecci-green);">
+                                    @user.Role?.RoleName
+                                </span>
+                            </td>
+                            <td>
+                                @if (user.Employee != null)
+                                {
+                                    <div class="fw-semibold small">@user.Employee.FullName</div>
+                                    <div class="text-muted" style="font-size:0.7rem;">@user.Employee.Department?.DepartmentName</div>
+                                }
+                                else
+                                {
+                                    <span class="text-muted small">Not linked</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <span class="status-badge @(user.IsActive ? "badge-active" : "badge-inactive")">
+                                    @(user.IsActive ? "Active" : "Inactive")
+                                </span>
+                            </td>
+                            <td class="text-muted small">
+                                @(user.LastLogin.HasValue ? user.LastLogin.Value.ToString("MM/dd/yyyy hh:mm tt") : "Never")
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <a asp-action="Edit" asp-route-id="@user.UserID"
+                                       class="btn btn-sm btn-outline-warning" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a asp-action="ResetPassword" asp-route-id="@user.UserID"
+                                       class="btn btn-sm btn-outline-secondary" title="Reset Password">
+                                        <i class="fas fa-key"></i>
+                                    </a>
+                                    <form asp-action="ToggleStatus" asp-route-id="@user.UserID" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit"
+                                                class="btn btn-sm @(user.IsActive ? "btn-outline-danger" : "btn-outline-success")"
+                                                title="@(user.IsActive ? "Deactivate" : "Activate")"
+                                                onclick="return confirm('Toggle status for @user.Username?')">
+                                            <i class="fas @(user.IsActive ? "fa-user-slash" : "fa-user-check")"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-5">
+                                <i class="fas fa-user-shield fa-2x mb-2 d-block opacity-25"></i>
+                                No users found.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3 text-center text-muted" style="font-size:0.72rem;">
+    <i class="fas fa-code me-1"></i>
+    Developed by <strong>UST Interns</strong>:
+    Arkin Reinier Aguilar &bull; Maxenne De Guzman &bull; Bernice Elyssa Soriano &bull; Emily Etea
+</div>

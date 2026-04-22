@@ -1,0 +1,119 @@
+@model IEnumerable<PECCI_HRIS.Models.Department>
+@{
+    ViewData["Title"] = "Departments";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var isHRAdmin = User.IsInRole("HR Admin");
+    var isHR = isHRAdmin || User.IsInRole("HR Staff");
+}
+
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-building me-2"></i>Departments</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Dashboard" asp-action="Index">Dashboard</a></li>
+                <li class="breadcrumb-item active">Departments</li>
+            </ol>
+        </nav>
+    </div>
+    @if (isHR)
+    {
+        <a asp-action="Create" class="btn btn-pecci-primary">
+            <i class="fas fa-plus me-1"></i> Add Department
+        </a>
+    }
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-list me-1"></i> Department List
+        <span class="badge ms-2" style="background:var(--pecci-green);">@Model.Count() records</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-pecci mb-0">
+                <thead>
+                    <tr>
+                        <th>Department Name</th>
+                        <th>Code</th>
+                        <th>Description</th>
+                        <th class="text-center">Employees</th>
+                        <th class="text-center">Positions</th>
+                        <th class="text-center">Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var dept in Model)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">@dept.DepartmentName</div>
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(dept.DepartmentCode))
+                                {
+                                    <span class="badge" style="background:var(--pecci-green-pale);color:var(--pecci-green);font-weight:600;">@dept.DepartmentCode</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                            <td class="text-muted small">@(dept.Description ?? "—")</td>
+                            <td class="text-center">
+                                <span class="badge bg-secondary">@dept.Employees.Count</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-secondary">@dept.Positions.Count</span>
+                            </td>
+                            <td class="text-center">
+                                <span class="status-badge @(dept.IsActive ? "badge-active" : "badge-inactive")">
+                                    @(dept.IsActive ? "Active" : "Inactive")
+                                </span>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    @if (isHR)
+                                    {
+                                        <a asp-action="Edit" asp-route-id="@dept.DepartmentID"
+                                           class="btn btn-sm btn-outline-warning" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    }
+                                    @if (isHRAdmin)
+                                    {
+                                        <form asp-action="ToggleStatus" asp-route-id="@dept.DepartmentID" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit"
+                                                    class="btn btn-sm @(dept.IsActive ? "btn-outline-danger" : "btn-outline-success")"
+                                                    title="@(dept.IsActive ? "Deactivate" : "Activate")"
+                                                    onclick="return confirm('Toggle status for @dept.DepartmentName?')">
+                                                <i class="fas @(dept.IsActive ? "fa-toggle-off" : "fa-toggle-on")"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center text-muted py-5">
+                                <i class="fas fa-building fa-2x mb-2 d-block opacity-25"></i>
+                                No departments found.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3 text-center text-muted" style="font-size:0.72rem;">
+    <i class="fas fa-code me-1"></i>
+    Developed by <strong>UST Interns</strong>:
+    Arkin Reinier Aguilar &bull; Maxenne De Guzman &bull; Bernice Elyssa Soriano &bull; Emily Etea
+</div>

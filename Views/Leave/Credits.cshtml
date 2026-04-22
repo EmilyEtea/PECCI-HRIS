@@ -1,0 +1,128 @@
+@model IEnumerable<PECCI_HRIS.Models.LeaveCredit>
+@{
+    ViewData["Title"] = "Leave Credits";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var isHR = User.IsInRole("HR Admin") || User.IsInRole("HR Staff");
+}
+
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-coins me-2"></i>Leave Credits</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Dashboard" asp-action="Index">Dashboard</a></li>
+                <li class="breadcrumb-item active">Leave Credits</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<!-- Filters -->
+@if (isHR)
+{
+    <div class="card mb-3">
+        <div class="card-body py-2">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label small mb-1">Employee</label>
+                    <select name="employeeId" class="form-select form-select-sm">
+                        <option value="">All Employees</option>
+                        @if (ViewBag.Employees != null)
+                        {
+                            foreach (var emp in (List<PECCI_HRIS.Models.Employee>)ViewBag.Employees)
+                            {
+                                <option value="@emp.EmployeeID" selected="@(ViewBag.EmployeeId?.ToString() == emp.EmployeeID.ToString())">
+                                    @emp.FullName
+                                </option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small mb-1">Year</label>
+                    <input type="number" name="year" class="form-control form-control-sm"
+                           value="@(ViewBag.Year ?? DateTime.Today.Year)" min="2020" max="2099" />
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-pecci-primary btn-sm w-100">
+                        <i class="fas fa-search me-1"></i> Filter
+                    </button>
+                </div>
+                <div class="col-md-1">
+                    <a asp-action="Credits" class="btn btn-outline-secondary btn-sm w-100" title="Clear">
+                        <i class="fas fa-times"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-list me-1"></i> Leave Credit Summary
+        <span class="badge ms-2" style="background:var(--pecci-green);">@Model.Count() records</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-pecci mb-0">
+                <thead>
+                    <tr>
+                        @if (isHR) { <th>Employee</th> }
+                        <th>Leave Type</th>
+                        <th class="text-center">Year</th>
+                        <th class="text-center">Total</th>
+                        <th class="text-center">Used</th>
+                        <th class="text-center">Pending</th>
+                        <th class="text-center">Remaining</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var credit in Model)
+                    {
+                        <tr>
+                            @if (isHR)
+                            {
+                                <td>
+                                    <div class="fw-semibold">@credit.Employee?.FullName</div>
+                                    <div class="text-muted small">@credit.Employee?.Department?.DepartmentName</div>
+                                </td>
+                            }
+                            <td>
+                                <div class="fw-semibold">@credit.LeaveType?.LeaveTypeName</div>
+                                @if (!string.IsNullOrEmpty(credit.LeaveType?.LeaveCode))
+                                {
+                                    <span class="badge" style="background:var(--pecci-green-pale);color:var(--pecci-green);font-size:0.7rem;">@credit.LeaveType.LeaveCode</span>
+                                }
+                            </td>
+                            <td class="text-center">@credit.Year</td>
+                            <td class="text-center">@credit.TotalCredits</td>
+                            <td class="text-center text-warning fw-semibold">@credit.UsedCredits</td>
+                            <td class="text-center text-muted">@credit.PendingCredits</td>
+                            <td class="text-center">
+                                <span class="fw-bold @(credit.RemainingCredits <= 0 ? "text-danger" : "text-success")">
+                                    @credit.RemainingCredits
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-5">
+                                <i class="fas fa-coins fa-2x mb-2 d-block opacity-25"></i>
+                                No leave credits found.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3 text-center text-muted" style="font-size:0.72rem;">
+    <i class="fas fa-code me-1"></i>
+    Developed by <strong>UST Interns</strong>:
+    Arkin Reinier Aguilar &bull; Maxenne De Guzman &bull; Bernice Elyssa Soriano &bull; Emily Etea
+</div>

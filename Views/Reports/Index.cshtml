@@ -1,0 +1,96 @@
+@{
+    ViewData["Title"] = "Reports";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-chart-bar me-2"></i>Reports</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Dashboard" asp-action="Index">Dashboard</a></li>
+                <li class="breadcrumb-item active">Reports</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Employee List Report -->
+    <div class="col-md-6 col-lg-3">
+        <div class="card h-100 text-center">
+            <div class="card-body d-flex flex-column align-items-center justify-content-center py-4">
+                <div class="mb-3" style="width:64px;height:64px;border-radius:50%;background:var(--pecci-green-pale);display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-users fa-2x" style="color:var(--pecci-green);"></i>
+                </div>
+                <h5 class="fw-bold mb-2">Employee List</h5>
+                <p class="text-muted small mb-4">
+                    Complete list of all employees with personal and employment details, filterable by department and status.
+                </p>
+                <a asp-action="EmployeeList" class="btn btn-pecci-primary mt-auto">
+                    <i class="fas fa-file-alt me-1"></i> Generate Report
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Summary Report -->
+    <div class="col-md-6 col-lg-3">
+        <div class="card h-100 text-center">
+            <div class="card-body d-flex flex-column align-items-center justify-content-center py-4">
+                <div class="mb-3" style="width:64px;height:64px;border-radius:50%;background:var(--pecci-orange-pale);display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-calendar-check fa-2x" style="color:var(--pecci-orange);"></i>
+                </div>
+                <h5 class="fw-bold mb-2">Attendance Summary</h5>
+                <p class="text-muted small mb-4">
+                    Monthly attendance summary per employee showing present, late, absent, overtime, and total hours worked.
+                </p>
+                <a asp-action="AttendanceSummary" class="btn btn-pecci-orange mt-auto">
+                    <i class="fas fa-file-alt me-1"></i> Generate Report
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leave Summary Report -->
+    <div class="col-md-6 col-lg-3">
+        <div class="card h-100 text-center">
+            <div class="card-body d-flex flex-column align-items-center justify-content-center py-4">
+                <div class="mb-3" style="width:64px;height:64px;border-radius:50%;background:#e8f5e9;display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-calendar-minus fa-2x" style="color:#388e3c;"></i>
+                </div>
+                <h5 class="fw-bold mb-2">Leave Summary</h5>
+                <p class="text-muted small mb-4">
+                    Annual leave utilization report grouped by employee and leave type, with approval status breakdown.
+                </p>
+                <a asp-action="LeaveSummary" class="btn btn-pecci-primary mt-auto">
+                    <i class="fas fa-file-alt me-1"></i> Generate Report
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Payroll Summary Report -->
+    <div class="col-md-6 col-lg-3">
+        <div class="card h-100 text-center">
+            <div class="card-body d-flex flex-column align-items-center justify-content-center py-4">
+                <div class="mb-3" style="width:64px;height:64px;border-radius:50%;background:#fff3e0;display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-money-bill-wave fa-2x" style="color:#e65100;"></i>
+                </div>
+                <h5 class="fw-bold mb-2">Payroll Summary</h5>
+                <p class="text-muted small mb-4">
+                    Monthly payroll summary with gross pay, deductions, and net pay totals per employee and overall.
+                </p>
+                <a asp-action="PayrollSummary" class="btn btn-pecci-orange mt-auto">
+                    <i class="fas fa-file-alt me-1"></i> Generate Report
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4 text-center text-muted" style="font-size:0.72rem;">
+    <i class="fas fa-code me-1"></i>
+    Developed by <strong>UST Interns</strong>:
+    Arkin Reinier Aguilar &bull; Maxenne De Guzman &bull; Bernice Elyssa Soriano &bull; Emily Etea
+</div>

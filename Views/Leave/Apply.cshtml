@@ -1,0 +1,191 @@
+@model PECCI_HRIS.ViewModels.LeaveApplicationViewModel
+@{
+    ViewData["Title"] = "Apply for Leave";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-calendar-plus me-2"></i>Apply for Leave</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Dashboard" asp-action="Index">Dashboard</a></li>
+                <li class="breadcrumb-item"><a asp-action="Index">Leave Applications</a></li>
+                <li class="breadcrumb-item active">Apply</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-7">
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-file-alt me-1"></i> Leave Application Form
+            </div>
+            <div class="card-body">
+                <form asp-action="Apply" method="post">
+                    @Html.AntiForgeryToken()
+                    <input asp-for="LeaveApplicationID" type="hidden" />
+                    <input asp-for="EmployeeID" type="hidden" />
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="LeaveTypeID" class="form-label fw-semibold">
+                            Leave Type <span class="text-danger">*</span>
+                        </label>
+                        <select asp-for="LeaveTypeID" asp-items="Model.LeaveTypes" class="form-select" id="leaveTypeSelect">
+                            <option value="">— Select Leave Type —</option>
+                        </select>
+                        <span asp-validation-for="LeaveTypeID" class="text-danger small"></span>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="StartDate" class="form-label fw-semibold">
+                                Start Date <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="StartDate" class="form-control" type="date" id="startDate"
+                                   min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                            <span asp-validation-for="StartDate" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label asp-for="EndDate" class="form-label fw-semibold">
+                                End Date <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="EndDate" class="form-control" type="date" id="endDate"
+                                   min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                            <span asp-validation-for="EndDate" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <!-- Live day count -->
+                    <div class="alert alert-info py-2 mb-3" id="dayCountAlert" style="display:none;">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Number of days: <strong id="dayCount">0</strong>
+                        <span class="text-muted small ms-2">(excluding weekends)</span>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="Reason" class="form-label fw-semibold">Reason</label>
+                        <textarea asp-for="Reason" class="form-control" rows="4"
+                                  placeholder="Please provide the reason for your leave request..."></textarea>
+                        <span asp-validation-for="Reason" class="text-danger small"></span>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-pecci-primary">
+                            <i class="fas fa-paper-plane me-1"></i> Submit Application
+                        </button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-coins me-1"></i> My Leave Credits
+            </div>
+            <div class="card-body p-0">
+                @if (Model.LeaveCredits.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-pecci mb-0 table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Leave Type</th>
+                                    <th class="text-center">Total</th>
+                                    <th class="text-center">Used</th>
+                                    <th class="text-center">Remaining</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var credit in Model.LeaveCredits)
+                                {
+                                    <tr>
+                                        <td>
+                                            <div class="fw-semibold small">@credit.LeaveType?.LeaveTypeName</div>
+                                            <div class="text-muted" style="font-size:0.7rem;">@credit.Year</div>
+                                        </td>
+                                        <td class="text-center small">@credit.TotalCredits</td>
+                                        <td class="text-center small">@credit.UsedCredits</td>
+                                        <td class="text-center">
+                                            <span class="fw-bold @(credit.RemainingCredits <= 0 ? "text-danger" : "text-success")">
+                                                @credit.RemainingCredits
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-coins fa-2x mb-2 d-block opacity-25"></i>
+                        No leave credits found for this year.
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3 text-center text-muted" style="font-size:0.72rem;">
+    <i class="fas fa-code me-1"></i>
+    Developed by <strong>UST Interns</strong>:
+    Arkin Reinier Aguilar &bull; Maxenne De Guzman &bull; Bernice Elyssa Soriano &bull; Emily Etea
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        function countWorkdays(start, end) {
+            let count = 0;
+            let cur = new Date(start);
+            while (cur <= end) {
+                const day = cur.getDay();
+                if (day !== 0 && day !== 6) count++;
+                cur.setDate(cur.getDate() + 1);
+            }
+            return count;
+        }
+
+        function updateDayCount() {
+            const startVal = document.getElementById('startDate').value;
+            const endVal   = document.getElementById('endDate').value;
+            const alert    = document.getElementById('dayCountAlert');
+            const countEl  = document.getElementById('dayCount');
+
+            if (startVal && endVal) {
+                const start = new Date(startVal);
+                const end   = new Date(endVal);
+                if (end >= start) {
+                    const days = countWorkdays(start, end);
+                    countEl.textContent = days;
+                    alert.style.display = 'block';
+                } else {
+                    alert.style.display = 'none';
+                }
+            } else {
+                alert.style.display = 'none';
+            }
+        }
+
+        document.getElementById('startDate').addEventListener('change', function () {
+            const endInput = document.getElementById('endDate');
+            if (!endInput.value || endInput.value < this.value) {
+                endInput.value = this.value;
+            }
+            updateDayCount();
+        });
+        document.getElementById('endDate').addEventListener('change', updateDayCount);
+        updateDayCount();
+    </script>
+}

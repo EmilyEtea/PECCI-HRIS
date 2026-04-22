@@ -1,0 +1,112 @@
+@model IEnumerable<PECCI_HRIS.Models.LeaveType>
+@{
+    ViewData["Title"] = "Leave Types";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var isHRAdmin = User.IsInRole("HR Admin");
+}
+
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-tags me-2"></i>Leave Types</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Dashboard" asp-action="Index">Dashboard</a></li>
+                <li class="breadcrumb-item active">Leave Types</li>
+            </ol>
+        </nav>
+    </div>
+    @if (isHRAdmin)
+    {
+        <a asp-action="CreateType" class="btn btn-pecci-primary">
+            <i class="fas fa-plus me-1"></i> Add Leave Type
+        </a>
+    }
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-list me-1"></i> Leave Type List
+        <span class="badge ms-2" style="background:var(--pecci-green);">@Model.Count() records</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-pecci mb-0">
+                <thead>
+                    <tr>
+                        <th>Leave Type Name</th>
+                        <th>Code</th>
+                        <th class="text-center">Days/Year</th>
+                        <th class="text-center">Paid</th>
+                        <th class="text-center">Requires Approval</th>
+                        <th class="text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var lt in Model)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">@lt.LeaveTypeName</div>
+                                @if (!string.IsNullOrEmpty(lt.Description))
+                                {
+                                    <div class="text-muted small">@lt.Description</div>
+                                }
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(lt.LeaveCode))
+                                {
+                                    <span class="badge" style="background:var(--pecci-green-pale);color:var(--pecci-green);font-weight:600;">@lt.LeaveCode</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                            <td class="text-center fw-semibold">@lt.DefaultDaysPerYear</td>
+                            <td class="text-center">
+                                @if (lt.IsPaid)
+                                {
+                                    <i class="fas fa-check-circle text-success"></i>
+                                }
+                                else
+                                {
+                                    <i class="fas fa-times-circle text-danger"></i>
+                                }
+                            </td>
+                            <td class="text-center">
+                                @if (lt.RequiresApproval)
+                                {
+                                    <i class="fas fa-check-circle text-success"></i>
+                                }
+                                else
+                                {
+                                    <i class="fas fa-times-circle text-muted"></i>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <span class="status-badge @(lt.IsActive ? "badge-active" : "badge-inactive")">
+                                    @(lt.IsActive ? "Active" : "Inactive")
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-5">
+                                <i class="fas fa-tags fa-2x mb-2 d-block opacity-25"></i>
+                                No leave types found.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3 text-center text-muted" style="font-size:0.72rem;">
+    <i class="fas fa-code me-1"></i>
+    Developed by <strong>UST Interns</strong>:
+    Arkin Reinier Aguilar &bull; Maxenne De Guzman &bull; Bernice Elyssa Soriano &bull; Emily Etea
+</div>

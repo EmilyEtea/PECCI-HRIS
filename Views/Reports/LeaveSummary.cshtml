@@ -1,0 +1,124 @@
+@model IEnumerable<PECCI_HRIS.Models.LeaveApplication>
+@{
+    ViewData["Title"] = "Leave Summary Report";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var grouped = Model.GroupBy(l => l.Employee);
+    var leaveTypes = Model.Select(l => l.LeaveType?.LeaveTypeName).Distinct().OrderBy(x => x).ToList();
+}
+
+<div class="page-header no-print">
+    <div>
+        <h1><i class="fas fa-calendar-minus me-2"></i>Leave Summary Report</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Dashboard" asp-action="Index">Dashboard</a></li>
+                <li class="breadcrumb-item"><a asp-action="Index">Reports</a></li>
+                <li class="breadcrumb-item active">Leave Summary</li>
+            </ol>
+        </nav>
+    </div>
+    <button onclick="window.print()" class="btn btn-outline-secondary no-print">
+        <i class="fas fa-print me-1"></i> Print Report
+    </button>
+</div>
+
+<!-- Filters -->
+<div class="card mb-3 no-print">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Year</label>
+                <input type="number" name="year" class="form-control form-control-sm"
+                       value="@(ViewBag.Year ?? DateTime.Today.Year)" min="2020" max="2099" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Department</label>
+                <select name="departmentId" class="form-select form-select-sm">
+                    <option value="">All Departments</option>
+                    @if (ViewBag.Departments != null)
+                    {
+                        foreach (var dept in (List<PECCI_HRIS.Models.Department>)ViewBag.Departments)
+                        {
+                            <option value="@dept.DepartmentID" selected="@(ViewBag.DepartmentId?.ToString() == dept.DepartmentID.ToString())">
+                                @dept.DepartmentName
+                            </option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-pecci-primary btn-sm w-100">
+                    <i class="fas fa-search me-1"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Print Header -->
+<div class="text-center mb-3 print-only" style="display:none;">
+    <h4 class="fw-bold">PLDT Employees Credit Cooperative, Inc.</h4>
+    <h5>Leave Summary Report — @(ViewBag.Year ?? DateTime.Today.Year)</h5>
+    <div class="text-muted small">Generated: @DateTime.Now.ToString("MMMM dd, yyyy hh:mm tt")</div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-list me-1"></i> Leave Summary by Employee
+        <span class="badge ms-2" style="background:var(--pecci-green);">@Model.Count() applications</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-pecci mb-0 table-sm">
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Department</th>
+                        @foreach (var lt in leaveTypes)
+                        {
+                            <th class="text-center">@lt</th>
+                        }
+                        <th class="text-center">Total Days</th>
+                        <th class="text-center">Approved</th>
+                        <th class="text-center">Pending</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var grp in grouped)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">@grp.Key?.FullName</div>
+                                <div class="text-muted" style="font-size:0.7rem;">@grp.Key?.EmployeeNo</div>
+                            </td>
+                            <td class="small">@grp.Key?.Department?.DepartmentName</td>
+                            @foreach (var lt in leaveTypes)
+                            {
+                                var days = grp.Where(l => l.LeaveType?.LeaveTypeName == lt && l.Status == "Approved")
+                                              .Sum(l => l.NumberOfDays);
+                                <td class="text-center small">@(days > 0 ? days.ToString("F1") : "—")</td>
+                            }
+                            <td class="text-center fw-bold" style="color:var(--pecci-green);">
+                                @grp.Where(l => l.Status == "Approved").Sum(l => l.NumberOfDays).ToString("F1")
+                            </td>
+                            <td class="text-center text-success">@grp.Count(l => l.Status == "Approved")</td>
+                            <td class="text-center text-warning">@grp.Count(l => l.Status == "Pending")</td>
+                        </tr>
+                    }
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="10" class="text-center text-muted py-4">No leave applications found.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3 text-center text-muted no-print" style="font-size:0.72rem;">
+    <i class="fas fa-code me-1"></i>
+    Developed by <strong>UST Interns</strong>:
+    Arkin Reinier Aguilar &bull; Maxenne De Guzman &bull; Bernice Elyssa Soriano &bull; Emily Etea
+</div>

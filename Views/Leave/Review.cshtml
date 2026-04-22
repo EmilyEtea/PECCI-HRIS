@@ -1,0 +1,170 @@
+@model PECCI_HRIS.Models.LeaveApplication
+@{
+    ViewData["Title"] = "Review Leave Application";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-clipboard-check me-2"></i>Review Leave Application</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Dashboard" asp-action="Index">Dashboard</a></li>
+                <li class="breadcrumb-item"><a asp-action="Index">Leave Applications</a></li>
+                <li class="breadcrumb-item active">Review</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-7">
+        <!-- Application Details -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <i class="fas fa-file-alt me-1"></i> Application Details
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="text-muted small mb-1">Employee</div>
+                        <div class="fw-semibold">@Model.Employee?.FullName</div>
+                        <div class="text-muted small">@Model.Employee?.Department?.DepartmentName — @Model.Employee?.Position?.PositionTitle</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-muted small mb-1">Leave Type</div>
+                        <div class="fw-semibold">@Model.LeaveType?.LeaveTypeName</div>
+                        @if (!string.IsNullOrEmpty(Model.LeaveType?.LeaveCode))
+                        {
+                            <span class="badge" style="background:var(--pecci-green-pale);color:var(--pecci-green);">@Model.LeaveType.LeaveCode</span>
+                        }
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-muted small mb-1">Start Date</div>
+                        <div class="fw-semibold">@Model.StartDate.ToString("MMMM dd, yyyy")</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-muted small mb-1">End Date</div>
+                        <div class="fw-semibold">@Model.EndDate.ToString("MMMM dd, yyyy")</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-muted small mb-1">Number of Days</div>
+                        <div class="fw-bold fs-5" style="color:var(--pecci-green);">@Model.NumberOfDays days</div>
+                    </div>
+                    <div class="col-12">
+                        <div class="text-muted small mb-1">Reason</div>
+                        <div class="p-3 rounded" style="background:var(--pecci-bg-light);border:1px solid var(--pecci-border);">
+                            @(string.IsNullOrEmpty(Model.Reason) ? "No reason provided." : Model.Reason)
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-muted small mb-1">Applied On</div>
+                        <div>@Model.AppliedAt.ToString("MMMM dd, yyyy hh:mm tt")</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-muted small mb-1">Current Status</div>
+                        @{
+                            var badgeClass = Model.Status switch {
+                                "Approved"  => "badge-approved",
+                                "Rejected"  => "badge-rejected",
+                                "Cancelled" => "badge-inactive",
+                                _           => "badge-pending"
+                            };
+                        }
+                        <span class="status-badge @badgeClass">@Model.Status</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Approval Form -->
+        @if (Model.Status == "Pending")
+        {
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-gavel me-1"></i> Approval Decision
+                </div>
+                <div class="card-body">
+                    <form asp-action="Review" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="LeaveApplicationID" value="@Model.LeaveApplicationID" />
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Remarks <span class="text-muted small">(optional)</span></label>
+                            <textarea name="Remarks" class="form-control" rows="3"
+                                      placeholder="Add remarks or comments for the employee..."></textarea>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" name="Action" value="Approve"
+                                    class="btn btn-pecci-primary"
+                                    onclick="return confirm('Approve this leave application?')">
+                                <i class="fas fa-check me-1"></i> Approve
+                            </button>
+                            <button type="submit" name="Action" value="Reject"
+                                    class="btn btn-pecci-orange"
+                                    onclick="return confirm('Reject this leave application?')">
+                                <i class="fas fa-times me-1"></i> Reject
+                            </button>
+                            <a asp-action="Index" class="btn btn-outline-secondary ms-auto">
+                                <i class="fas fa-arrow-left me-1"></i> Back
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        }
+        else
+        {
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back to List
+            </a>
+        }
+    </div>
+
+    <div class="col-lg-5">
+        <!-- Previous Remarks -->
+        @if (!string.IsNullOrEmpty(Model.ManagerRemarks) || !string.IsNullOrEmpty(Model.HRRemarks))
+        {
+            <div class="card">
+                <div class="card-header">
+                    <i class="fas fa-comments me-1"></i> Approval History
+                </div>
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(Model.ManagerRemarks))
+                    {
+                        <div class="mb-3">
+                            <div class="text-muted small mb-1">Manager Remarks</div>
+                            <div class="p-2 rounded" style="background:var(--pecci-bg-light);border:1px solid var(--pecci-border);">
+                                @Model.ManagerRemarks
+                            </div>
+                            @if (Model.ManagerApprovedAt.HasValue)
+                            {
+                                <div class="text-muted" style="font-size:0.7rem;">@Model.ManagerApprovedAt.Value.ToString("MM/dd/yyyy hh:mm tt")</div>
+                            }
+                        </div>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.HRRemarks))
+                    {
+                        <div>
+                            <div class="text-muted small mb-1">HR Remarks</div>
+                            <div class="p-2 rounded" style="background:var(--pecci-bg-light);border:1px solid var(--pecci-border);">
+                                @Model.HRRemarks
+                            </div>
+                            @if (Model.HRApprovedAt.HasValue)
+                            {
+                                <div class="text-muted" style="font-size:0.7rem;">@Model.HRApprovedAt.Value.ToString("MM/dd/yyyy hh:mm tt")</div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="mt-3 text-center text-muted" style="font-size:0.72rem;">
+    <i class="fas fa-code me-1"></i>
+    Developed by <strong>UST Interns</strong>:
+    Arkin Reinier Aguilar &bull; Maxenne De Guzman &bull; Bernice Elyssa Soriano &bull; Emily Etea
+</div>

@@ -1,0 +1,125 @@
+@model IEnumerable<PECCI_HRIS.Models.Employee>
+@{
+    ViewData["Title"] = "Employee List Report";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="page-header no-print">
+    <div>
+        <h1><i class="fas fa-users me-2"></i>Employee List Report</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Dashboard" asp-action="Index">Dashboard</a></li>
+                <li class="breadcrumb-item"><a asp-action="Index">Reports</a></li>
+                <li class="breadcrumb-item active">Employee List</li>
+            </ol>
+        </nav>
+    </div>
+    <button onclick="window.print()" class="btn btn-outline-secondary no-print">
+        <i class="fas fa-print me-1"></i> Print Report
+    </button>
+</div>
+
+<!-- Filters -->
+<div class="card mb-3 no-print">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label small mb-1">Department</label>
+                <select name="departmentId" class="form-select form-select-sm">
+                    <option value="">All Departments</option>
+                    @if (ViewBag.Departments != null)
+                    {
+                        foreach (var dept in (List<PECCI_HRIS.Models.Department>)ViewBag.Departments)
+                        {
+                            <option value="@dept.DepartmentID" selected="@(ViewBag.DepartmentId?.ToString() == dept.DepartmentID.ToString())">
+                                @dept.DepartmentName
+                            </option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Status</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All Statuses</option>
+                    <option value="Active"     selected="@(ViewBag.Status == "Active")">Active</option>
+                    <option value="Inactive"   selected="@(ViewBag.Status == "Inactive")">Inactive</option>
+                    <option value="Resigned"   selected="@(ViewBag.Status == "Resigned")">Resigned</option>
+                    <option value="Terminated" selected="@(ViewBag.Status == "Terminated")">Terminated</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-pecci-primary btn-sm w-100">
+                    <i class="fas fa-search me-1"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Report Header (print) -->
+<div class="text-center mb-3 print-only" style="display:none;">
+    <h4 class="fw-bold">PLDT Employees Credit Cooperative, Inc.</h4>
+    <h5>Employee List Report</h5>
+    <div class="text-muted small">Generated: @DateTime.Now.ToString("MMMM dd, yyyy hh:mm tt")</div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-list me-1"></i> Employee List — @Model.Count() records</span>
+        <span class="text-muted small no-print">Generated: @DateTime.Now.ToString("MMMM dd, yyyy")</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-pecci mb-0 table-sm">
+                <thead>
+                    <tr>
+                        <th>Emp. No.</th>
+                        <th>Full Name</th>
+                        <th>Department</th>
+                        <th>Position</th>
+                        <th>Date Hired</th>
+                        <th>Employment</th>
+                        <th>Status</th>
+                        <th>Contact</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var emp in Model)
+                    {
+                        <tr>
+                            <td class="fw-semibold" style="color:var(--pecci-green);">@emp.EmployeeNo</td>
+                            <td>
+                                <div class="fw-semibold">@emp.FullName</div>
+                                <div class="text-muted" style="font-size:0.7rem;">@emp.CompanyEmail</div>
+                            </td>
+                            <td>@emp.Department?.DepartmentName</td>
+                            <td>@emp.Position?.PositionTitle</td>
+                            <td>@emp.DateHired.ToString("MM/dd/yyyy")</td>
+                            <td>@emp.EmploymentStatus</td>
+                            <td>
+                                <span class="status-badge @(emp.Status == "Active" ? "badge-active" : "badge-inactive")">
+                                    @emp.Status
+                                </span>
+                            </td>
+                            <td class="small">@emp.ContactNumber</td>
+                        </tr>
+                    }
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">No employees found.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3 text-center text-muted no-print" style="font-size:0.72rem;">
+    <i class="fas fa-code me-1"></i>
+    Developed by <strong>UST Interns</strong>:
+    Arkin Reinier Aguilar &bull; Maxenne De Guzman &bull; Bernice Elyssa Soriano &bull; Emily Etea
+</div>

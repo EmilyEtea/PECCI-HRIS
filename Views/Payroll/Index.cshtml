@@ -1,0 +1,155 @@
+@model IEnumerable<PECCI_HRIS.Models.PayrollRecord>
+@{
+    ViewData["Title"] = "Payroll";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var isHRAdmin = User.IsInRole("HR Admin");
+    var isHR = isHRAdmin || User.IsInRole("HR Staff");
+}
+
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-money-bill-wave me-2"></i>Payroll</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Dashboard" asp-action="Index">Dashboard</a></li>
+                <li class="breadcrumb-item active">Payroll</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Compute" class="btn btn-pecci-primary">
+            <i class="fas fa-calculator me-1"></i> Compute Payroll
+        </a>
+        <a asp-action="Payslips" class="btn btn-outline-secondary">
+            <i class="fas fa-file-invoice-dollar me-1"></i> View Payslips
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Month</label>
+                <select name="month" class="form-select form-select-sm">
+                    <option value="">All Months</option>
+                    @for (int m = 1; m <= 12; m++)
+                    {
+                        <option value="@m" selected="@(ViewBag.Month?.ToString() == m.ToString())">
+                            @System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(m)
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Year</label>
+                <input type="number" name="year" class="form-control form-control-sm"
+                       value="@(ViewBag.Year ?? DateTime.Today.Year)" min="2020" max="2099" />
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-pecci-primary btn-sm w-100">
+                    <i class="fas fa-search me-1"></i> Filter
+                </button>
+            </div>
+            <div class="col-md-1">
+                <a asp-action="Index" class="btn btn-outline-secondary btn-sm w-100" title="Clear">
+                    <i class="fas fa-times"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-list me-1"></i> Payroll Records
+        <span class="badge ms-2" style="background:var(--pecci-green);">@Model.Count() records</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-pecci mb-0">
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Pay Period</th>
+                        <th class="text-end">Basic Salary</th>
+                        <th class="text-end">Gross Pay</th>
+                        <th class="text-end">Deductions</th>
+                        <th class="text-end">Net Pay</th>
+                        <th class="text-center">Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var rec in Model)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">@rec.Employee?.FullName</div>
+                                <div class="text-muted small">@rec.Employee?.Department?.DepartmentName</div>
+                            </td>
+                            <td>
+                                <span class="badge" style="background:var(--pecci-green-pale);color:var(--pecci-green);">@rec.PayPeriod</span>
+                            </td>
+                            <td class="text-end">₱@rec.BasicSalary.ToString("N2")</td>
+                            <td class="text-end fw-semibold">₱@rec.StoredGrossPay.ToString("N2")</td>
+                            <td class="text-end text-danger">₱@rec.StoredTotalDeductions.ToString("N2")</td>
+                            <td class="text-end fw-bold" style="color:var(--pecci-green);">₱@rec.StoredNetPay.ToString("N2")</td>
+                            <td class="text-center">
+                                @{
+                                    var badgeClass = rec.Status switch {
+                                        "Finalized" => "badge-approved",
+                                        "Released"  => "badge-active",
+                                        _           => "badge-pending"
+                                    };
+                                }
+                                <span class="status-badge @badgeClass">@rec.Status</span>
+                            </td>
+                            <td>
+                                @if (isHRAdmin && rec.Status == "Draft")
+                                {
+                                    <form asp-action="Finalize" asp-route-id="@rec.PayrollID" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-pecci-primary"
+                                                onclick="return confirm('Finalize payroll for @rec.Employee?.FullName?')"
+                                                title="Finalize">
+                                            <i class="fas fa-check me-1"></i> Finalize
+                                        </button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-5">
+                                <i class="fas fa-money-bill-wave fa-2x mb-2 d-block opacity-25"></i>
+                                No payroll records found.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                @if (Model.Any())
+                {
+                    <tfoot>
+                        <tr style="background:var(--pecci-green-pale);font-weight:700;">
+                            <td colspan="3" class="text-end">Totals:</td>
+                            <td class="text-end">₱@Model.Sum(r => r.StoredGrossPay).ToString("N2")</td>
+                            <td class="text-end text-danger">₱@Model.Sum(r => r.StoredTotalDeductions).ToString("N2")</td>
+                            <td class="text-end" style="color:var(--pecci-green);">₱@Model.Sum(r => r.StoredNetPay).ToString("N2")</td>
+                            <td colspan="2"></td>
+                        </tr>
+                    </tfoot>
+                }
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3 text-center text-muted" style="font-size:0.72rem;">
+    <i class="fas fa-code me-1"></i>
+    Developed by <strong>UST Interns</strong>:
+    Arkin Reinier Aguilar &bull; Maxenne De Guzman &bull; Bernice Elyssa Soriano &bull; Emily Etea
+</div>

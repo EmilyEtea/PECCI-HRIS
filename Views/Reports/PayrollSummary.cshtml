@@ -1,0 +1,180 @@
+@model IEnumerable<PECCI_HRIS.Models.PayrollRecord>
+@{
+    ViewData["Title"] = "Payroll Summary Report";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var totalGross      = Model.Sum(r => r.StoredGrossPay);
+    var totalDeductions = Model.Sum(r => r.StoredTotalDeductions);
+    var totalNet        = Model.Sum(r => r.StoredNetPay);
+}
+
+<div class="page-header no-print">
+    <div>
+        <h1><i class="fas fa-money-bill-wave me-2"></i>Payroll Summary Report</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Dashboard" asp-action="Index">Dashboard</a></li>
+                <li class="breadcrumb-item"><a asp-action="Index">Reports</a></li>
+                <li class="breadcrumb-item active">Payroll Summary</li>
+            </ol>
+        </nav>
+    </div>
+    <button onclick="window.print()" class="btn btn-outline-secondary no-print">
+        <i class="fas fa-print me-1"></i> Print Report
+    </button>
+</div>
+
+<!-- Filters -->
+<div class="card mb-3 no-print">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Month</label>
+                <select name="month" class="form-select form-select-sm">
+                    <option value="">All Months</option>
+                    @for (int m = 1; m <= 12; m++)
+                    {
+                        <option value="@m" selected="@(ViewBag.Month?.ToString() == m.ToString())">
+                            @System.Globalization.CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(m)
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Year</label>
+                <input type="number" name="year" class="form-control form-control-sm"
+                       value="@(ViewBag.Year ?? DateTime.Today.Year)" min="2020" max="2099" />
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-pecci-primary btn-sm w-100">
+                    <i class="fas fa-search me-1"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Print Header -->
+<div class="text-center mb-3 print-only" style="display:none;">
+    <h4 class="fw-bold">PLDT Employees Credit Cooperative, Inc.</h4>
+    <h5>Payroll Summary Report</h5>
+    <div class="text-muted small">Generated: @DateTime.Now.ToString("MMMM dd, yyyy hh:mm tt")</div>
+</div>
+
+<!-- Summary Totals -->
+@if (Model.Any())
+{
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:var(--pecci-green-pale);color:var(--pecci-green);">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-label">Total Gross Pay</div>
+                    <div class="stat-value">₱@totalGross.ToString("N2")</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:#fff3e0;color:var(--pecci-orange);">
+                    <i class="fas fa-minus-circle"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-label">Total Deductions</div>
+                    <div class="stat-value text-danger">₱@totalDeductions.ToString("N2")</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-icon" style="background:var(--pecci-green-pale);color:var(--pecci-green);">
+                    <i class="fas fa-hand-holding-usd"></i>
+                </div>
+                <div class="stat-info">
+                    <div class="stat-label">Total Net Pay</div>
+                    <div class="stat-value" style="color:var(--pecci-green);">₱@totalNet.ToString("N2")</div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Detailed Table -->
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-list me-1"></i> Payroll Detail per Employee
+        <span class="badge ms-2" style="background:var(--pecci-green);">@Model.Count() records</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-pecci mb-0 table-sm">
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Department</th>
+                        <th>Pay Period</th>
+                        <th class="text-end">Basic</th>
+                        <th class="text-end">Gross Pay</th>
+                        <th class="text-end">Deductions</th>
+                        <th class="text-end">Net Pay</th>
+                        <th class="text-center">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var rec in Model)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">@rec.Employee?.FullName</div>
+                                <div class="text-muted" style="font-size:0.7rem;">@rec.Employee?.EmployeeNo</div>
+                            </td>
+                            <td class="small">@rec.Employee?.Department?.DepartmentName</td>
+                            <td>
+                                <span class="badge" style="background:var(--pecci-green-pale);color:var(--pecci-green);">@rec.PayPeriod</span>
+                            </td>
+                            <td class="text-end small">₱@rec.BasicSalary.ToString("N2")</td>
+                            <td class="text-end fw-semibold">₱@rec.StoredGrossPay.ToString("N2")</td>
+                            <td class="text-end text-danger">₱@rec.StoredTotalDeductions.ToString("N2")</td>
+                            <td class="text-end fw-bold" style="color:var(--pecci-green);">₱@rec.StoredNetPay.ToString("N2")</td>
+                            <td class="text-center">
+                                @{
+                                    var bc = rec.Status switch {
+                                        "Finalized" => "badge-approved",
+                                        "Released"  => "badge-active",
+                                        _           => "badge-pending"
+                                    };
+                                }
+                                <span class="status-badge @bc">@rec.Status</span>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">No payroll records found.</td>
+                        </tr>
+                    }
+                </tbody>
+                @if (Model.Any())
+                {
+                    <tfoot>
+                        <tr style="background:var(--pecci-green-pale);font-weight:700;border-top:2px solid var(--pecci-green);">
+                            <td colspan="4" class="text-end">Totals:</td>
+                            <td class="text-end">₱@totalGross.ToString("N2")</td>
+                            <td class="text-end text-danger">₱@totalDeductions.ToString("N2")</td>
+                            <td class="text-end" style="color:var(--pecci-green);">₱@totalNet.ToString("N2")</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                }
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3 text-center text-muted no-print" style="font-size:0.72rem;">
+    <i class="fas fa-code me-1"></i>
+    Developed by <strong>UST Interns</strong>:
+    Arkin Reinier Aguilar &bull; Maxenne De Guzman &bull; Bernice Elyssa Soriano &bull; Emily Etea
+</div>
