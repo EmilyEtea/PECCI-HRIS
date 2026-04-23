@@ -77,6 +77,7 @@
         .result-box.success-timeout { background: #E3F2FD; border: 2px solid #1565C0; }
         .result-box.late            { background: #FFF3E0; border: 2px solid #E65100; }
         .result-box.error           { background: #FFEBEE; border: 2px solid #C62828; }
+        .result-box.pending         { background: #FFF8E1; border: 2px dashed #F57F17; }
         .result-name  { font-size: 1.4rem; font-weight: 800; }
         .result-dept  { font-size: 0.85rem; color: #555; }
         .result-time  { font-size: 2rem; font-weight: 900; font-family: monospace; }
@@ -90,9 +91,10 @@
             display: inline-block;
             margin-bottom: 0.5rem;
         }
-        .action-in  { background: #2E7D32; color: white; }
-        .action-out { background: #1565C0; color: white; }
-        .action-late { background: #E65100; color: white; }
+        .action-in      { background: #2E7D32; color: white; }
+        .action-out     { background: #1565C0; color: white; }
+        .action-late    { background: #E65100; color: white; }
+        .action-pending { background: #F57F17; color: white; }
         .clock {
             font-size: 2.5rem;
             font-weight: 900;
@@ -229,10 +231,35 @@
 
             errorBox.style.display = 'none';
 
-            const isIn   = data.action === 'TIME IN';
-            const isLate = data.isLate;
+            const isIn      = data.action === 'TIME IN';
+            const isLate    = data.isLate;
+            const isPending = data.isPending;
 
-            resultBox.className = 'result-box ' + (isIn ? (isLate ? 'late' : 'success-timein') : 'success-timeout');
+            // Pending state — waiting for confirmation scan
+            if (isPending) {
+                resultBox.className = 'result-box pending';
+                resultBox.style.display = 'block';
+
+                const actionEl = document.getElementById('resultAction');
+                actionEl.textContent = data.action; // "CONFIRM TIME IN" or "CONFIRM TIME OUT"
+                actionEl.className = 'result-action action-pending';
+
+                document.getElementById('resultName').textContent = data.employeeName;
+                document.getElementById('resultDept').textContent = data.department;
+                document.getElementById('resultTime').textContent = data.timeRecorded;
+                document.getElementById('resultMsg').textContent  = data.message;
+
+                // Auto-hide after 10 seconds (matches server pending window)
+                setTimeout(() => { resultBox.style.display = 'none'; }, 10000);
+                return;
+            }
+
+            // Confirmed scan
+            const scheme = isIn
+                ? (isLate ? 'late' : 'success-timein')
+                : 'success-timeout';
+
+            resultBox.className = 'result-box ' + scheme;
             resultBox.style.display = 'block';
 
             const actionEl = document.getElementById('resultAction');

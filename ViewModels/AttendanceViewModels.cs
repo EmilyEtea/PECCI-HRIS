@@ -35,11 +35,12 @@ public class ScanRequest
 public class ScanResult
 {
     public bool   Success      { get; set; }
-    public string Action       { get; set; } = string.Empty; // TIME IN | TIME OUT
+    public string Action       { get; set; } = string.Empty; // TIME IN | TIME OUT | CONFIRM TIME IN | CONFIRM TIME OUT
     public string EmployeeNo   { get; set; } = string.Empty;
     public string EmployeeName { get; set; } = string.Empty;
     public string Department   { get; set; } = string.Empty;
     public string TimeRecorded { get; set; } = string.Empty;
     public string Message      { get; set; } = string.Empty;
     public bool   IsLate       { get; set; }
+    public bool   IsPending    { get; set; } // true = waiting for confirmation scan
 }

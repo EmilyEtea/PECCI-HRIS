@@ -15,6 +15,8 @@ builder.Services.Configure<AttendanceSettings>(
     builder.Configuration.GetSection(AttendanceSettings.SectionName));
 builder.Services.Configure<PayrollSettings>(
     builder.Configuration.GetSection(PayrollSettings.SectionName));
+builder.Services.Configure<KioskSettings>(
+    builder.Configuration.GetSection(KioskSettings.SectionName));
 
 // ── Application services ──────────────────────────────────────────────────────
 builder.Services.AddScoped<AttendanceComputationService>();

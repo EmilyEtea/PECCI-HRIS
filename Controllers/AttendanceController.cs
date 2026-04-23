@@ -217,23 +217,76 @@ namespace PECCI_HRIS.Controllers
         }
 
         // ── Barcode / ID Scanner Endpoint ────────────────────────────────────────
-        // Called by a barcode scanner or RFID reader via HTTP POST.
-        // The scanner sends the employee's ID number (EmployeeNo or barcode value).
-        // Returns JSON so the scanner terminal can display feedback.
+        // Supports:
+        //   - Lookup by EmployeeNo (exact match)
+        //   - Lookup by employee name (barcode contains name from ID card)
+        //
+        // Double-scan confirmation logic:
+        //   - 1st scan → "PENDING TIME IN" (confirm required)
+        //   - 2nd scan within 10s → confirmed TIME IN
+        //   - 3rd scan (or 2nd if already timed in) → "PENDING TIME OUT"
+        //   - Next scan within 10s → confirmed TIME OUT
+        //
+        // Pending state is stored in a static in-memory dictionary (per-server).
+        // For multi-server deployments, replace with IDistributedCache.
+
+        private static readonly Dictionary<int, (string Action, DateTime Expires)> _pendingScans = new();
+        private static readonly object _pendingLock = new();
+        private const int PendingWindowSeconds = 10;
 
         [HttpPost]
-        [AllowAnonymous] // Scanner device doesn't have a login session
+        [AllowAnonymous]
         public async Task<IActionResult> Scan([FromBody] ScanRequest request)
         {
             if (string.IsNullOrWhiteSpace(request?.EmployeeNo))
                 return Json(new ScanResult { Success = false, Message = "No ID scanned." });
 
+            // ── Employee lookup: try EmployeeNo first, then name ─────────────────
+            var scannedValue = request.EmployeeNo.Trim();
+
             var employee = await _context.Employees
                 .Include(e => e.Department)
-                .FirstOrDefaultAsync(e => e.EmployeeNo == request.EmployeeNo && e.Status == "Active");
+                .FirstOrDefaultAsync(e => e.EmployeeNo == scannedValue && e.Status == "Active");
+
+            // If not found by EmployeeNo, try matching by full name or display name
+            // (barcode on ID card may contain the employee's name)
+            if (employee == null)
+            {
+                var allActive = await _context.Employees
+                    .Include(e => e.Department)
+                    .Where(e => e.Status == "Active")
+                    .ToListAsync();
+
+                // Try exact match on DisplayName ("FirstName LastName") or FullName ("LastName, FirstName")
+                employee = allActive.FirstOrDefault(e =>
+                    string.Equals(e.DisplayName, scannedValue, StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(e.FullName, scannedValue, StringComparison.OrdinalIgnoreCase));
+
+                // If still not found, try partial name match (first name OR last name)
+                if (employee == null)
+                {
+                    var nameMatches = allActive.Where(e =>
+                        string.Equals(e.FirstName, scannedValue, StringComparison.OrdinalIgnoreCase) ||
+                        string.Equals(e.LastName, scannedValue, StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+
+                    if (nameMatches.Count == 1)
+                        employee = nameMatches[0];
+                    else if (nameMatches.Count > 1)
+                        return Json(new ScanResult
+                        {
+                            Success = false,
+                            Message = $"Multiple employees found with name '{scannedValue}'. Please use Employee No."
+                        });
+                }
+            }
 
             if (employee == null)
-                return Json(new ScanResult { Success = false, Message = $"Employee '{request.EmployeeNo}' not found or inactive." });
+                return Json(new ScanResult
+                {
+                    Success = false,
+                    Message = $"Employee '{scannedValue}' not found or inactive."
+                });
 
             var today = DateTime.Today;
             var now   = DateTime.Now.TimeOfDay;
@@ -241,12 +294,64 @@ namespace PECCI_HRIS.Controllers
             var existing = await _context.AttendanceRecords
                 .FirstOrDefaultAsync(a => a.EmployeeID == employee.EmployeeID && a.AttendanceDate == today);
 
+            // ── Double-scan confirmation logic ───────────────────────────────────
+            // Determine what action is needed next
+            string neededAction = (existing == null || !existing.TimeIn.HasValue)
+                ? "TIME IN"
+                : (!existing.TimeOut.HasValue ? "TIME OUT" : "DONE");
+
+            if (neededAction == "DONE")
+                return Json(new ScanResult
+                {
+                    Success      = false,
+                    EmployeeNo   = employee.EmployeeNo,
+                    EmployeeName = employee.DisplayName,
+                    Message      = "Attendance already completed for today."
+                });
+
+            // Check pending state
+            bool hasPending = false;
+            lock (_pendingLock)
+            {
+                if (_pendingScans.TryGetValue(employee.EmployeeID, out var pending))
+                {
+                    if (pending.Action == neededAction && DateTime.Now <= pending.Expires)
+                        hasPending = true;
+                    else
+                        _pendingScans.Remove(employee.EmployeeID); // expired or different action
+                }
+            }
+
+            if (!hasPending)
+            {
+                // First scan — set pending, ask to scan again
+                lock (_pendingLock)
+                {
+                    _pendingScans[employee.EmployeeID] = (neededAction, DateTime.Now.AddSeconds(PendingWindowSeconds));
+                }
+
+                return Json(new ScanResult
+                {
+                    Success      = true,
+                    Action       = $"CONFIRM {neededAction}",
+                    EmployeeNo   = employee.EmployeeNo,
+                    EmployeeName = employee.DisplayName,
+                    Department   = employee.Department?.DepartmentName ?? "",
+                    TimeRecorded = now.ToString(@"hh\:mm\:ss"),
+                    Message      = $"Scan again within {PendingWindowSeconds}s to confirm {neededAction}.",
+                    IsLate       = false,
+                    IsPending    = true
+                });
+            }
+
+            // Second scan — confirmed, remove pending and process
+            lock (_pendingLock) { _pendingScans.Remove(employee.EmployeeID); }
+
             string action;
             string message;
 
-            if (existing == null || !existing.TimeIn.HasValue)
+            if (neededAction == "TIME IN")
             {
-                // TIME IN
                 var record = existing ?? new AttendanceRecord
                 {
                     EmployeeID     = employee.EmployeeID,
@@ -283,10 +388,9 @@ namespace PECCI_HRIS.Controllers
                     IsLate       = record.IsLate
                 });
             }
-            else if (!existing.TimeOut.HasValue)
+            else // TIME OUT
             {
-                // TIME OUT
-                existing.TimeOut = now;
+                existing!.TimeOut = now;
                 _computeService.Compute(existing);
                 await _context.SaveChangesAsync();
 
@@ -312,16 +416,6 @@ namespace PECCI_HRIS.Controllers
                     IsLate       = false
                 });
             }
-            else
-            {
-                return Json(new ScanResult
-                {
-                    Success      = false,
-                    EmployeeNo   = employee.EmployeeNo,
-                    EmployeeName = employee.DisplayName,
-                    Message      = "Already completed attendance for today."
-                });
-            }
         }
 
         // ── Scanner Terminal Page (display for scanner kiosk) ─────────────────────
@@ -334,7 +428,8 @@ namespace PECCI_HRIS.Controllers
         // ── Summary Report ───────────────────────────────────────────────────────
 
         [Authorize(Roles = "HR Admin,HR Staff")]
-        public async Task<IActionResult> Summary(int? employeeId, int? month, int? year)        {
+        public async Task<IActionResult> Summary(int? employeeId, int? month, int? year)
+        {
             month ??= DateTime.Today.Month;
             year  ??= DateTime.Today.Year;
 
