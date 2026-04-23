@@ -7,26 +7,36 @@ namespace PECCI_HRIS.ViewModels
     {
         public int EmployeeID { get; set; }
 
-        [Required, Display(Name = "Employee No.")]
-        public string EmployeeNo { get; set; } = string.Empty;
+        // NOT required — auto-generated if left blank
+        [Display(Name = "Employee No.")]
+        [RegularExpression(@"^[A-Za-z0-9\-]*$", ErrorMessage = "Employee No. can only contain letters, numbers, and hyphens.")]
+        public string? EmployeeNo { get; set; }
 
-        [Required, Display(Name = "First Name")]
+        [Required(ErrorMessage = "First name is required.")]
+        [MaxLength(50)]
+        [Display(Name = "First Name")]
         public string FirstName { get; set; } = string.Empty;
 
+        [MaxLength(50)]
         [Display(Name = "Middle Name")]
         public string? MiddleName { get; set; }
 
-        [Required, Display(Name = "Last Name")]
+        [Required(ErrorMessage = "Last name is required.")]
+        [MaxLength(50)]
+        [Display(Name = "Last Name")]
         public string LastName { get; set; } = string.Empty;
 
+        [MaxLength(10)]
         [Display(Name = "Suffix")]
         public string? Suffix { get; set; }
 
-        [Required, Display(Name = "Date of Birth")]
+        [Required(ErrorMessage = "Date of birth is required.")]
         [DataType(DataType.Date)]
+        [Display(Name = "Date of Birth")]
         public DateTime DateOfBirth { get; set; }
 
-        [Required, Display(Name = "Gender")]
+        [Required(ErrorMessage = "Gender is required.")]
+        [Display(Name = "Gender")]
         public string Gender { get; set; } = string.Empty;
 
         [Display(Name = "Civil Status")]
@@ -35,52 +45,69 @@ namespace PECCI_HRIS.ViewModels
         [Display(Name = "Nationality")]
         public string? Nationality { get; set; } = "Filipino";
 
+        [MaxLength(300)]
         [Display(Name = "Address")]
         public string? Address { get; set; }
 
+        // Philippine mobile: 09XXXXXXXXX or +639XXXXXXXXX
         [Display(Name = "Contact Number")]
+        [RegularExpression(@"^(09|\+639)\d{9}$",
+            ErrorMessage = "Enter a valid Philippine mobile number (e.g. 09171234567 or +639171234567).")]
         public string? ContactNumber { get; set; }
 
         [Display(Name = "Personal Email")]
-        [EmailAddress]
+        [EmailAddress(ErrorMessage = "Enter a valid email address.")]
         public string? PersonalEmail { get; set; }
 
         [Display(Name = "Company Email")]
-        [EmailAddress]
+        [EmailAddress(ErrorMessage = "Enter a valid email address.")]
         public string? CompanyEmail { get; set; }
 
-        // Government IDs
+        // Government IDs — Philippine formats
         [Display(Name = "SSS Number")]
+        [RegularExpression(@"^\d{2}-\d{7}-\d{1}$",
+            ErrorMessage = "SSS format: XX-XXXXXXX-X (e.g. 33-1234567-8).")]
         public string? SSSNumber { get; set; }
 
         [Display(Name = "PhilHealth Number")]
+        [RegularExpression(@"^\d{2}-\d{9}-\d{1}$",
+            ErrorMessage = "PhilHealth format: XX-XXXXXXXXX-X (e.g. 12-345678901-2).")]
         public string? PhilHealthNumber { get; set; }
 
         [Display(Name = "Pag-IBIG Number")]
+        [RegularExpression(@"^\d{4}-\d{4}-\d{4}$",
+            ErrorMessage = "Pag-IBIG format: XXXX-XXXX-XXXX (e.g. 1234-5678-9012).")]
         public string? PagIbigNumber { get; set; }
 
         [Display(Name = "TIN Number")]
+        [RegularExpression(@"^\d{3}-\d{3}-\d{3}(-\d{3})?$",
+            ErrorMessage = "TIN format: XXX-XXX-XXX or XXX-XXX-XXX-XXX (e.g. 123-456-789-000).")]
         public string? TINNumber { get; set; }
 
         // Employment
-        [Required, Display(Name = "Department")]
+        [Required(ErrorMessage = "Department is required.")]
+        [Display(Name = "Department")]
         public int DepartmentID { get; set; }
 
-        [Required, Display(Name = "Position")]
+        [Required(ErrorMessage = "Position is required.")]
+        [Display(Name = "Position")]
         public int PositionID { get; set; }
 
-        [Required, Display(Name = "Date Hired")]
+        [Required(ErrorMessage = "Date hired is required.")]
         [DataType(DataType.Date)]
+        [Display(Name = "Date Hired")]
         public DateTime DateHired { get; set; }
 
-        [Display(Name = "Date Regularized")]
         [DataType(DataType.Date)]
+        [Display(Name = "Date Regularized")]
         public DateTime? DateRegularized { get; set; }
 
-        [Required, Display(Name = "Employment Status")]
+        [Required(ErrorMessage = "Employment status is required.")]
+        [Display(Name = "Employment Status")]
         public string EmploymentStatus { get; set; } = "Regular";
 
-        [Required, Display(Name = "Status")]
+        [Required(ErrorMessage = "Status is required.")]
+        [Display(Name = "Status")]
         public string Status { get; set; } = "Active";
 
         // Dropdowns

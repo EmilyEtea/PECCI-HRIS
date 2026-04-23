@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using PECCI_HRIS.Configuration;
 using PECCI_HRIS.Data;
 using PECCI_HRIS.Services;
-
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Database ─────────────────────────────────────────────────────────────────
@@ -21,6 +20,7 @@ builder.Services.Configure<PayrollSettings>(
 builder.Services.AddScoped<AttendanceComputationService>();
 builder.Services.AddScoped<TaxComputationService>();
 builder.Services.AddScoped<AuditService>();
+builder.Services.AddScoped<LeaveCreditService>();
 
 // ── Authentication ────────────────────────────────────────────────────────────
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -65,12 +65,11 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Account}/{action=Login}/{id?}");
 
-// ── Seed admin user on startup ───────────────────────────────────────────────
-// Migrations are applied via CLI: dotnet ef database update
-// This block only seeds the default admin user if it doesn't exist yet.
+// ── Seed admin user + annual leave credit refresh on startup ─────────────────
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    var leaveSvc = scope.ServiceProvider.GetRequiredService<LeaveCreditService>();
 
     // Seed default admin user (password: Admin@123)
     if (db.Database.CanConnect() && !db.Users.Any(u => u.Username == "admin"))
@@ -86,6 +85,11 @@ using (var scope = app.Services.CreateScope())
         });
         db.SaveChanges();
     }
+
+    // Auto-refresh leave credits for the current year on startup
+    // (safe to call repeatedly — only creates missing records)
+    if (db.Database.CanConnect())
+        await leaveSvc.RefreshAnnualCredits();
 }
 
 app.Run();

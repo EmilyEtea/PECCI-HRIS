@@ -1,5 +1,5 @@
 # PECCI HRIS — Technical Documentation
-## PLDT Employees Credit Cooperative, Inc.
+## PECCI Multipurpose Cooperative
 ### Human Resource Information System
 
 ---
@@ -29,7 +29,7 @@
 
 ## 1. System Overview
 
-The PECCI HRIS (Human Resource Information System) is a web-based application developed for PLDT Employees Credit Cooperative, Inc. (PECCI) to centralize and streamline HR operations. The system covers the full employee lifecycle from onboarding to payroll processing.
+The PECCI HRIS (Human Resource Information System) is a web-based application developed for PECCI Multipurpose Cooperative (PECCI) to centralize and streamline HR operations. The system covers the full employee lifecycle from onboarding to payroll processing.
 
 ### 1.1 Purpose
 - Centralize employee records management
@@ -620,4 +620,4 @@ Returns computed late threshold for preview.
 ---
 
 *Document prepared by UST Interns: Arkin Reinier Aguilar, Maxenne De Guzman, Bernice Elyssa Soriano, Emily Etea*
-*© 2026 PECCI — PLDT Employees Credit Cooperative, Inc.*
+*© 2026 PECCI — PECCI Multipurpose Cooperative*

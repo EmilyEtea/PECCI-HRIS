@@ -6,7 +6,6 @@ using PECCI_HRIS.Data;
 using PECCI_HRIS.Models;
 using PECCI_HRIS.Services;
 using PECCI_HRIS.ViewModels;
-
 namespace PECCI_HRIS.Controllers
 {
     [Authorize]
@@ -14,11 +13,14 @@ namespace PECCI_HRIS.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly AuditService _auditService;
+        private readonly LeaveCreditService _leaveCreditService;
 
-        public LeaveController(ApplicationDbContext context, AuditService auditService)
+        public LeaveController(ApplicationDbContext context, AuditService auditService,
+            LeaveCreditService leaveCreditService)
         {
             _context = context;
             _auditService = auditService;
+            _leaveCreditService = leaveCreditService;
         }
 
         // ── Leave Applications List ───────────────────────────────────────────────
@@ -319,6 +321,21 @@ namespace PECCI_HRIS.Controllers
 
             TempData["Success"] = $"Leave type '{leaveType.LeaveTypeName}' created.";
             return RedirectToAction(nameof(Types));
+        }
+
+        // ── Manual Annual Refresh (HR Admin only) ─────────────────────────────────
+        [HttpPost, ValidateAntiForgeryToken, Authorize(Roles = "HR Admin")]
+        public async Task<IActionResult> RefreshCredits(int year)
+        {
+            int count = await _leaveCreditService.ManualRefresh(year);
+
+            await _auditService.LogAsync(GetCurrentUserID(), GetCurrentUsername(),
+                "RefreshCredits", "Leave",
+                $"Manually refreshed leave credits for year {year} — {count} records updated",
+                GetClientIP());
+
+            TempData["Success"] = $"Leave credits refreshed for {year}. {count} records updated.";
+            return RedirectToAction(nameof(Credits));
         }
     }
 }

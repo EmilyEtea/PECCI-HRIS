@@ -1,6 +1,6 @@
 # PECCI HRIS — Human Resource Information System
 
-**PLDT Employees Credit Cooperative, Inc.**
+**Multipurpose Cooperative**
 
 A comprehensive web-based HRIS built with ASP.NET Core 8.0, Entity Framework Core, and SQL Server. Features employee management, attendance tracking with Philippine labor law compliance, leave management, and payroll computation based on BIR TRAIN Law.
 
@@ -298,7 +298,7 @@ PECCI_HRIS/
 - **Bernice Elyssa Soriano**
 - **Emily Etea**
 
-**For:** PLDT Employees Credit Cooperative, Inc. (PECCI)
+**For:** PECCI
 
 **Internship Program:** University of Santo Tomas (UST)
 

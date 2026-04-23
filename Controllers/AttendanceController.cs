@@ -216,11 +216,125 @@ namespace PECCI_HRIS.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        // ── Barcode / ID Scanner Endpoint ────────────────────────────────────────
+        // Called by a barcode scanner or RFID reader via HTTP POST.
+        // The scanner sends the employee's ID number (EmployeeNo or barcode value).
+        // Returns JSON so the scanner terminal can display feedback.
+
+        [HttpPost]
+        [AllowAnonymous] // Scanner device doesn't have a login session
+        public async Task<IActionResult> Scan([FromBody] ScanRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request?.EmployeeNo))
+                return Json(new ScanResult { Success = false, Message = "No ID scanned." });
+
+            var employee = await _context.Employees
+                .Include(e => e.Department)
+                .FirstOrDefaultAsync(e => e.EmployeeNo == request.EmployeeNo && e.Status == "Active");
+
+            if (employee == null)
+                return Json(new ScanResult { Success = false, Message = $"Employee '{request.EmployeeNo}' not found or inactive." });
+
+            var today = DateTime.Today;
+            var now   = DateTime.Now.TimeOfDay;
+
+            var existing = await _context.AttendanceRecords
+                .FirstOrDefaultAsync(a => a.EmployeeID == employee.EmployeeID && a.AttendanceDate == today);
+
+            string action;
+            string message;
+
+            if (existing == null || !existing.TimeIn.HasValue)
+            {
+                // TIME IN
+                var record = existing ?? new AttendanceRecord
+                {
+                    EmployeeID     = employee.EmployeeID,
+                    AttendanceDate = today,
+                    IsManualEntry  = false
+                };
+                record.TimeIn = now;
+                _computeService.Compute(record);
+
+                if (existing == null)
+                    _context.AttendanceRecords.Add(record);
+
+                await _context.SaveChangesAsync();
+
+                action  = "TIME IN";
+                message = record.IsLate
+                    ? $"Late by {record.LateMinutes:F0} min"
+                    : "On time";
+
+                await _auditService.LogAsync(null, employee.EmployeeNo,
+                    "ScanTimeIn", "Attendance",
+                    $"{employee.DisplayName} scanned IN at {now:hh\\:mm\\:ss} — {message}",
+                    request.DeviceIP);
+
+                return Json(new ScanResult
+                {
+                    Success      = true,
+                    Action       = action,
+                    EmployeeNo   = employee.EmployeeNo,
+                    EmployeeName = employee.DisplayName,
+                    Department   = employee.Department?.DepartmentName ?? "",
+                    TimeRecorded = now.ToString(@"hh\:mm\:ss"),
+                    Message      = message,
+                    IsLate       = record.IsLate
+                });
+            }
+            else if (!existing.TimeOut.HasValue)
+            {
+                // TIME OUT
+                existing.TimeOut = now;
+                _computeService.Compute(existing);
+                await _context.SaveChangesAsync();
+
+                action  = "TIME OUT";
+                message = existing.HasOvertime
+                    ? $"OT: {existing.OvertimeMinutes:F0} min | Total: {existing.TotalHoursWorked:F2} hrs"
+                    : $"Total: {existing.TotalHoursWorked:F2} hrs";
+
+                await _auditService.LogAsync(null, employee.EmployeeNo,
+                    "ScanTimeOut", "Attendance",
+                    $"{employee.DisplayName} scanned OUT at {now:hh\\:mm\\:ss} — {message}",
+                    request.DeviceIP);
+
+                return Json(new ScanResult
+                {
+                    Success      = true,
+                    Action       = action,
+                    EmployeeNo   = employee.EmployeeNo,
+                    EmployeeName = employee.DisplayName,
+                    Department   = employee.Department?.DepartmentName ?? "",
+                    TimeRecorded = now.ToString(@"hh\:mm\:ss"),
+                    Message      = message,
+                    IsLate       = false
+                });
+            }
+            else
+            {
+                return Json(new ScanResult
+                {
+                    Success      = false,
+                    EmployeeNo   = employee.EmployeeNo,
+                    EmployeeName = employee.DisplayName,
+                    Message      = "Already completed attendance for today."
+                });
+            }
+        }
+
+        // ── Scanner Terminal Page (display for scanner kiosk) ─────────────────────
+        [AllowAnonymous]
+        public IActionResult Scanner()
+        {
+            return View();
+        }
+
         // ── Summary Report ───────────────────────────────────────────────────────
 
         [Authorize(Roles = "HR Admin,HR Staff")]
-        public async Task<IActionResult> Summary(int? employeeId, int? month, int? year)
-        {
+        public async Task<IActionResult> Summary(int? employeeId, int? month, int? year)        {
             month ??= DateTime.Today.Month;
             year  ??= DateTime.Today.Year;
 

@@ -14,14 +14,17 @@ namespace PECCI_HRIS.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly AuditService _auditService;
+        private readonly LeaveCreditService _leaveCreditService;
 
-        public EmployeeController(ApplicationDbContext context, AuditService auditService)
+        public EmployeeController(ApplicationDbContext context,
+            AuditService auditService,
+            LeaveCreditService leaveCreditService)
         {
             _context = context;
             _auditService = auditService;
+            _leaveCreditService = leaveCreditService;
         }
 
-        // ── List ─────────────────────────────────────────────────────────────────
         public async Task<IActionResult> Index(string? search, string? status, int? departmentId)
         {
             var query = _context.Employees
@@ -40,17 +43,22 @@ namespace PECCI_HRIS.Controllers
             if (departmentId.HasValue)
                 query = query.Where(e => e.DepartmentID == departmentId);
 
-            var employees = await query.OrderBy(e => e.LastName).ThenBy(e => e.FirstName).ToListAsync();
+            var employees = await query
+                .OrderBy(e => e.LastName)
+                .ThenBy(e => e.FirstName)
+                .ToListAsync();
 
-            ViewBag.Search       = search;
-            ViewBag.Status       = status;
+            ViewBag.Search = search;
+            ViewBag.Status = status;
             ViewBag.DepartmentId = departmentId;
-            ViewBag.Departments  = await _context.Departments.Where(d => d.IsActive).OrderBy(d => d.DepartmentName).ToListAsync();
+            ViewBag.Departments = await _context.Departments
+                .Where(d => d.IsActive)
+                .OrderBy(d => d.DepartmentName)
+                .ToListAsync();
 
             return View(employees);
         }
 
-        // ── Profile / Details ─────────────────────────────────────────────────────
         public async Task<IActionResult> Profile(int id)
         {
             var employee = await _context.Employees
@@ -61,35 +69,32 @@ namespace PECCI_HRIS.Controllers
 
             if (employee == null) return NotFound();
 
-            // Leave credits
             var leaveCredits = await _context.LeaveCredits
                 .Include(lc => lc.LeaveType)
                 .Where(lc => lc.EmployeeID == id && lc.Year == DateTime.Today.Year)
                 .ToListAsync();
 
-            // Recent attendance
             var recentAttendance = await _context.AttendanceRecords
                 .Where(a => a.EmployeeID == id)
                 .OrderByDescending(a => a.AttendanceDate)
                 .Take(10)
                 .ToListAsync();
 
-            ViewBag.LeaveCredits     = leaveCredits;
+            ViewBag.LeaveCredits = leaveCredits;
             ViewBag.RecentAttendance = recentAttendance;
 
             return View(employee);
         }
 
-        // ── Create ────────────────────────────────────────────────────────────────
         [Authorize(Roles = "HR Admin,HR Staff")]
         public async Task<IActionResult> Create()
         {
             var vm = new EmployeeViewModel
             {
-                DateHired    = DateTime.Today,
-                DateOfBirth  = DateTime.Today.AddYears(-25),
-                Departments  = await GetDepartmentList(),
-                Positions    = new List<SelectListItem>()
+                DateHired = DateTime.Today,
+                DateOfBirth = DateTime.Today.AddYears(-25),
+                Departments = await GetDepartmentList(),
+                Positions = new List<SelectListItem>()
             };
             return View(vm);
         }
@@ -102,7 +107,7 @@ namespace PECCI_HRIS.Controllers
             if (!ModelState.IsValid)
             {
                 vm.Departments = await GetDepartmentList();
-                vm.Positions   = await GetPositionList(vm.DepartmentID);
+                vm.Positions = await GetPositionList(vm.DepartmentID);
                 return View(vm);
             }
 
@@ -110,43 +115,61 @@ namespace PECCI_HRIS.Controllers
             if (string.IsNullOrWhiteSpace(vm.EmployeeNo))
             {
                 int count = await _context.Employees.CountAsync() + 1;
-                vm.EmployeeNo = $"EMP-{count:D4}";
+                string candidate;
+                do
+                {
+                    candidate = $"EMP-{count:D4}";
+                    count++;
+                }
+                while (await _context.Employees.AnyAsync(e => e.EmployeeNo == candidate));
+                vm.EmployeeNo = candidate;
+            }
+            else
+            {
+                bool duplicate = await _context.Employees
+                    .AnyAsync(e => e.EmployeeNo == vm.EmployeeNo && e.EmployeeID != vm.EmployeeID);
+                if (duplicate)
+                {
+                    ModelState.AddModelError("EmployeeNo", "This Employee No. is already in use.");
+                    vm.Departments = await GetDepartmentList();
+                    vm.Positions = await GetPositionList(vm.DepartmentID);
+                    return View(vm);
+                }
             }
 
             var employee = new Employee
             {
-                EmployeeNo       = vm.EmployeeNo,
-                FirstName        = vm.FirstName,
-                MiddleName       = vm.MiddleName,
-                LastName         = vm.LastName,
-                Suffix           = vm.Suffix,
-                DateOfBirth      = vm.DateOfBirth,
-                Gender           = vm.Gender,
-                CivilStatus      = vm.CivilStatus,
-                Nationality      = vm.Nationality ?? "Filipino",
-                Address          = vm.Address,
-                ContactNumber    = vm.ContactNumber,
-                PersonalEmail    = vm.PersonalEmail,
-                CompanyEmail     = vm.CompanyEmail,
-                SSSNumber        = vm.SSSNumber,
+                EmployeeNo = vm.EmployeeNo!,
+                FirstName = vm.FirstName,
+                MiddleName = vm.MiddleName,
+                LastName = vm.LastName,
+                Suffix = vm.Suffix,
+                DateOfBirth = vm.DateOfBirth,
+                Gender = vm.Gender,
+                CivilStatus = vm.CivilStatus,
+                Nationality = vm.Nationality ?? "Filipino",
+                Address = vm.Address,
+                ContactNumber = vm.ContactNumber,
+                PersonalEmail = vm.PersonalEmail,
+                CompanyEmail = vm.CompanyEmail,
+                SSSNumber = vm.SSSNumber,
                 PhilHealthNumber = vm.PhilHealthNumber,
-                PagIbigNumber    = vm.PagIbigNumber,
-                TINNumber        = vm.TINNumber,
-                DepartmentID     = vm.DepartmentID,
-                PositionID       = vm.PositionID,
-                DateHired        = vm.DateHired,
-                DateRegularized  = vm.DateRegularized,
+                PagIbigNumber = vm.PagIbigNumber,
+                TINNumber = vm.TINNumber,
+                DepartmentID = vm.DepartmentID,
+                PositionID = vm.PositionID,
+                DateHired = vm.DateHired,
+                DateRegularized = vm.DateRegularized,
                 EmploymentStatus = vm.EmploymentStatus,
-                Status           = vm.Status,
-                CreatedAt        = DateTime.Now,
-                CreatedBy        = GetCurrentUserID()
+                Status = vm.Status,
+                CreatedAt = DateTime.Now,
+                CreatedBy = GetCurrentUserID()
             };
 
             _context.Employees.Add(employee);
             await _context.SaveChangesAsync();
 
-            // Auto-allocate leave credits for current year
-            await AllocateLeaveCredits(employee.EmployeeID);
+            await _leaveCreditService.AllocateForNewEmployee(employee.EmployeeID);
 
             await _auditService.LogAsync(GetCurrentUserID(), GetCurrentUsername(),
                 "Create", "Employee",
@@ -157,7 +180,6 @@ namespace PECCI_HRIS.Controllers
             return RedirectToAction(nameof(Profile), new { id = employee.EmployeeID });
         }
 
-        // ── Edit ──────────────────────────────────────────────────────────────────
         [Authorize(Roles = "HR Admin,HR Staff")]
         public async Task<IActionResult> Edit(int id)
         {
@@ -166,32 +188,32 @@ namespace PECCI_HRIS.Controllers
 
             var vm = new EmployeeViewModel
             {
-                EmployeeID       = employee.EmployeeID,
-                EmployeeNo       = employee.EmployeeNo,
-                FirstName        = employee.FirstName,
-                MiddleName       = employee.MiddleName,
-                LastName         = employee.LastName,
-                Suffix           = employee.Suffix,
-                DateOfBirth      = employee.DateOfBirth,
-                Gender           = employee.Gender,
-                CivilStatus      = employee.CivilStatus,
-                Nationality      = employee.Nationality,
-                Address          = employee.Address,
-                ContactNumber    = employee.ContactNumber,
-                PersonalEmail    = employee.PersonalEmail,
-                CompanyEmail     = employee.CompanyEmail,
-                SSSNumber        = employee.SSSNumber,
+                EmployeeID = employee.EmployeeID,
+                EmployeeNo = employee.EmployeeNo,
+                FirstName = employee.FirstName,
+                MiddleName = employee.MiddleName,
+                LastName = employee.LastName,
+                Suffix = employee.Suffix,
+                DateOfBirth = employee.DateOfBirth,
+                Gender = employee.Gender,
+                CivilStatus = employee.CivilStatus,
+                Nationality = employee.Nationality,
+                Address = employee.Address,
+                ContactNumber = employee.ContactNumber,
+                PersonalEmail = employee.PersonalEmail,
+                CompanyEmail = employee.CompanyEmail,
+                SSSNumber = employee.SSSNumber,
                 PhilHealthNumber = employee.PhilHealthNumber,
-                PagIbigNumber    = employee.PagIbigNumber,
-                TINNumber        = employee.TINNumber,
-                DepartmentID     = employee.DepartmentID,
-                PositionID       = employee.PositionID,
-                DateHired        = employee.DateHired,
-                DateRegularized  = employee.DateRegularized,
+                PagIbigNumber = employee.PagIbigNumber,
+                TINNumber = employee.TINNumber,
+                DepartmentID = employee.DepartmentID,
+                PositionID = employee.PositionID,
+                DateHired = employee.DateHired,
+                DateRegularized = employee.DateRegularized,
                 EmploymentStatus = employee.EmploymentStatus,
-                Status           = employee.Status,
-                Departments      = await GetDepartmentList(),
-                Positions        = await GetPositionList(employee.DepartmentID)
+                Status = employee.Status,
+                Departments = await GetDepartmentList(),
+                Positions = await GetPositionList(employee.DepartmentID)
             };
 
             return View(vm);
@@ -205,7 +227,7 @@ namespace PECCI_HRIS.Controllers
             if (!ModelState.IsValid)
             {
                 vm.Departments = await GetDepartmentList();
-                vm.Positions   = await GetPositionList(vm.DepartmentID);
+                vm.Positions = await GetPositionList(vm.DepartmentID);
                 return View(vm);
             }
 
@@ -214,29 +236,29 @@ namespace PECCI_HRIS.Controllers
 
             string oldValues = $"Name:{employee.FullName}, Dept:{employee.DepartmentID}, Status:{employee.Status}";
 
-            employee.FirstName        = vm.FirstName;
-            employee.MiddleName       = vm.MiddleName;
-            employee.LastName         = vm.LastName;
-            employee.Suffix           = vm.Suffix;
-            employee.DateOfBirth      = vm.DateOfBirth;
-            employee.Gender           = vm.Gender;
-            employee.CivilStatus      = vm.CivilStatus;
-            employee.Nationality      = vm.Nationality;
-            employee.Address          = vm.Address;
-            employee.ContactNumber    = vm.ContactNumber;
-            employee.PersonalEmail    = vm.PersonalEmail;
-            employee.CompanyEmail     = vm.CompanyEmail;
-            employee.SSSNumber        = vm.SSSNumber;
+            employee.FirstName = vm.FirstName;
+            employee.MiddleName = vm.MiddleName;
+            employee.LastName = vm.LastName;
+            employee.Suffix = vm.Suffix;
+            employee.DateOfBirth = vm.DateOfBirth;
+            employee.Gender = vm.Gender;
+            employee.CivilStatus = vm.CivilStatus;
+            employee.Nationality = vm.Nationality;
+            employee.Address = vm.Address;
+            employee.ContactNumber = vm.ContactNumber;
+            employee.PersonalEmail = vm.PersonalEmail;
+            employee.CompanyEmail = vm.CompanyEmail;
+            employee.SSSNumber = vm.SSSNumber;
             employee.PhilHealthNumber = vm.PhilHealthNumber;
-            employee.PagIbigNumber    = vm.PagIbigNumber;
-            employee.TINNumber        = vm.TINNumber;
-            employee.DepartmentID     = vm.DepartmentID;
-            employee.PositionID       = vm.PositionID;
-            employee.DateHired        = vm.DateHired;
-            employee.DateRegularized  = vm.DateRegularized;
+            employee.PagIbigNumber = vm.PagIbigNumber;
+            employee.TINNumber = vm.TINNumber;
+            employee.DepartmentID = vm.DepartmentID;
+            employee.PositionID = vm.PositionID;
+            employee.DateHired = vm.DateHired;
+            employee.DateRegularized = vm.DateRegularized;
             employee.EmploymentStatus = vm.EmploymentStatus;
-            employee.Status           = vm.Status;
-            employee.UpdatedAt        = DateTime.Now;
+            employee.Status = vm.Status;
+            employee.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
 
@@ -249,7 +271,6 @@ namespace PECCI_HRIS.Controllers
             return RedirectToAction(nameof(Profile), new { id = employee.EmployeeID });
         }
 
-        // ── Deactivate ────────────────────────────────────────────────────────────
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles = "HR Admin")]
@@ -258,9 +279,9 @@ namespace PECCI_HRIS.Controllers
             var employee = await _context.Employees.FindAsync(id);
             if (employee == null) return NotFound();
 
-            employee.Status        = "Inactive";
+            employee.Status = "Inactive";
             employee.DateSeparated = DateTime.Today;
-            employee.UpdatedAt     = DateTime.Now;
+            employee.UpdatedAt = DateTime.Now;
 
             await _context.SaveChangesAsync();
 
@@ -273,7 +294,6 @@ namespace PECCI_HRIS.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // ── AJAX: Get positions by department ─────────────────────────────────────
         [HttpGet]
         public async Task<IActionResult> GetPositionsByDepartment(int departmentId)
         {
@@ -282,55 +302,33 @@ namespace PECCI_HRIS.Controllers
                 .OrderBy(p => p.PositionTitle)
                 .Select(p => new { p.PositionID, p.PositionTitle, p.BasicSalary })
                 .ToListAsync();
-
             return Json(positions);
         }
 
-        // ── Helpers ───────────────────────────────────────────────────────────────
-        private async Task<IEnumerable<SelectListItem>> GetDepartmentList()
+        private async Task<List<SelectListItem>> GetDepartmentList()
         {
-            return await _context.Departments
+            var depts = await _context.Departments
                 .Where(d => d.IsActive)
                 .OrderBy(d => d.DepartmentName)
-                .Select(d => new SelectListItem { Value = d.DepartmentID.ToString(), Text = d.DepartmentName })
                 .ToListAsync();
+            return depts.Select(d => new SelectListItem
+            {
+                Value = d.DepartmentID.ToString(),
+                Text = d.DepartmentName
+            }).ToList();
         }
 
-        private async Task<IEnumerable<SelectListItem>> GetPositionList(int departmentId)
+        private async Task<List<SelectListItem>> GetPositionList(int departmentId)
         {
-            return await _context.Positions
+            var positions = await _context.Positions
                 .Where(p => p.DepartmentID == departmentId && p.IsActive)
                 .OrderBy(p => p.PositionTitle)
-                .Select(p => new SelectListItem { Value = p.PositionID.ToString(), Text = p.PositionTitle })
                 .ToListAsync();
-        }
-
-        private async Task AllocateLeaveCredits(int employeeId)
-        {
-            var leaveTypes = await _context.LeaveTypes.Where(lt => lt.IsActive).ToListAsync();
-            int year = DateTime.Today.Year;
-
-            foreach (var lt in leaveTypes)
+            return positions.Select(p => new SelectListItem
             {
-                bool exists = await _context.LeaveCredits
-                    .AnyAsync(lc => lc.EmployeeID == employeeId && lc.LeaveTypeID == lt.LeaveTypeID && lc.Year == year);
-
-                if (!exists)
-                {
-                    _context.LeaveCredits.Add(new LeaveCredit
-                    {
-                        EmployeeID   = employeeId,
-                        LeaveTypeID  = lt.LeaveTypeID,
-                        Year         = year,
-                        TotalCredits = lt.DefaultDaysPerYear,
-                        UsedCredits  = 0,
-                        PendingCredits = 0,
-                        CreatedAt    = DateTime.Now
-                    });
-                }
-            }
-
-            await _context.SaveChangesAsync();
+                Value = p.PositionID.ToString(),
+                Text = p.PositionTitle
+            }).ToList();
         }
     }
 }

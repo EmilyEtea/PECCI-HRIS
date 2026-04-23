@@ -1,5 +1,5 @@
 # PECCI HRIS — Sprint Progress Presentation
-## PLDT Employees Credit Cooperative, Inc.
+## PECCI Multipurpose Cooperative
 ### Human Resource Information System
 
 ---
@@ -19,7 +19,7 @@
 ║          🟢  PECCI HRIS  🟢                              ║
 ║     Human Resource Information System                    ║
 ║                                                          ║
-║   PLDT Employees Credit Cooperative, Inc.                ║
+║   PECCI Multipurpose Cooperative                ║
 ║                                                          ║
 ║   ─────────────────────────────────────────              ║
 ║   Developed by UST Interns:                              ║
@@ -38,7 +38,7 @@
 
 ### What is PECCI HRIS?
 
-A **web-based Human Resource Information System** developed for PLDT Employees Credit Cooperative, Inc. (PECCI) to:
+A **web-based Human Resource Information System** developed for PECCI Multipurpose Cooperative (PECCI) to:
 
 - ✅ Centralize employee records
 - ✅ Automate attendance tracking
@@ -420,7 +420,7 @@ When HR adjusts attendance, the system automatically recomputes:
 ║          Thank You!                                      ║
 ║                                                          ║
 ║   PECCI HRIS v1.0.0                                      ║
-║   PLDT Employees Credit Cooperative, Inc.                ║
+║   PECCI Multipurpose Cooperative                ║
 ║                                                          ║
 ║   ─────────────────────────────────────────              ║
 ║   Developed by UST Interns:                              ║
