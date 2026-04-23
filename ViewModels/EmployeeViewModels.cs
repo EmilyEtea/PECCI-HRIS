@@ -8,6 +8,7 @@ namespace PECCI_HRIS.ViewModels
         public int EmployeeID { get; set; }
 
         [Required, Display(Name = "Employee No.")]
+        [StringLength(8, MinimumLength = 7, ErrorMessage = "Employee No. must be 7 to 8 characters.")]
         public string EmployeeNo { get; set; } = string.Empty;
 
         [Required, Display(Name = "First Name")]

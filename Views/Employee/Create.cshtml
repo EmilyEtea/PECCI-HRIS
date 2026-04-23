@@ -28,7 +28,7 @@
                     <div class="row g-3">
                         <div class="col-md-3">
                             <label asp-for="EmployeeNo" class="form-label"></label>
-                            <input asp-for="EmployeeNo" class="form-control" placeholder="Auto-generated if blank" />
+                            <input asp-for="EmployeeNo" class="form-control" placeholder="8-character employee number" maxlength="8" />
                             <span asp-validation-for="EmployeeNo" class="text-danger small"></span>
                         </div>
                         <div class="col-md-3">

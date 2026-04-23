@@ -106,13 +106,6 @@ namespace PECCI_HRIS.Controllers
                 return View(vm);
             }
 
-            // Auto-generate employee number if blank
-            if (string.IsNullOrWhiteSpace(vm.EmployeeNo))
-            {
-                int count = await _context.Employees.CountAsync() + 1;
-                vm.EmployeeNo = $"EMP-{count:D4}";
-            }
-
             var employee = new Employee
             {
                 EmployeeNo       = vm.EmployeeNo,
