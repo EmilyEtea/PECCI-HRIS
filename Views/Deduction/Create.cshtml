@@ -1,0 +1,119 @@
+@model PECCI_HRIS.ViewModels.DeductionViewModel
+@{
+    ViewData["Title"] = "Add Deduction";
+}
+
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-plus-circle me-2"></i>Add Deduction</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Dashboard" asp-action="Index">Dashboard</a></li>
+                <li class="breadcrumb-item"><a asp-action="Index">Deductions</a></li>
+                <li class="breadcrumb-item active">Add</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header"><i class="fas fa-hand-holding-usd me-1"></i> Deduction Details</div>
+            <div class="card-body">
+                <form asp-action="Create" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label asp-for="EmployeeID" class="form-label"></label>
+                            <select asp-for="EmployeeID" asp-items="Model.Employees" class="form-select">
+                                <option value="">Select Employee...</option>
+                            </select>
+                            <span asp-validation-for="EmployeeID" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="DeductionType" class="form-label"></label>
+                            <select asp-for="DeductionType" class="form-select">
+                                <option value="">Select Type...</option>
+                                <option value="SSS Loan">SSS Loan</option>
+                                <option value="Pag-IBIG Loan">Pag-IBIG Loan</option>
+                                <option value="PECCI Loan">PECCI Loan</option>
+                                <option value="Cash Advance">Cash Advance</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            <span asp-validation-for="DeductionType" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Amount" class="form-label"></label>
+                            <div class="input-group">
+                                <span class="input-group-text">₱</span>
+                                <input asp-for="Amount" type="number" step="0.01" min="0.01" class="form-control" />
+                            </div>
+                            <span asp-validation-for="Amount" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Description" class="form-label"></label>
+                            <input asp-for="Description" class="form-control" placeholder="e.g. SSS Loan – Ref# 12345" />
+                            <span asp-validation-for="Description" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Month" class="form-label"></label>
+                            <select asp-for="Month" class="form-select">
+                                @for (int m = 1; m <= 12; m++)
+                                {
+                                    <option value="@m">@(new DateTime(2000, m, 1).ToString("MMMM"))</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Year" class="form-label"></label>
+                            <select asp-for="Year" class="form-select">
+                                @for (int y = DateTime.Today.Year; y >= DateTime.Today.Year - 3; y--)
+                                {
+                                    <option value="@y">@y</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="CutoffPeriod" class="form-label"></label>
+                            <select asp-for="CutoffPeriod" class="form-select">
+                                <option value="">Select...</option>
+                                <option value="1-15">1–15</option>
+                                <option value="16-30">16–30</option>
+                            </select>
+                            <span asp-validation-for="CutoffPeriod" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-pecci-primary">
+                            <i class="fas fa-save me-1"></i> Save Deduction
+                        </button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header"><i class="fas fa-info-circle me-1"></i> Notes</div>
+            <div class="card-body" style="font-size:0.82rem;">
+                <ul class="mb-0 ps-3">
+                    <li>Deductions must be uploaded <strong>before</strong> computing payroll for the cutoff period.</li>
+                    <li>Government contributions (SSS, PhilHealth, Pag-IBIG) are computed automatically during payroll.</li>
+                    <li>Use this form for <strong>loans and other non-statutory deductions</strong>.</li>
+                    <li>The 25% salary floor rule is enforced during payroll computation — deductions will not exceed 75% of gross pay.</li>
+                    <li>Priority order: Government → Loans → Other.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}

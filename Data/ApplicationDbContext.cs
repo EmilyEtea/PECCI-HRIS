@@ -21,6 +21,7 @@ namespace PECCI_HRIS.Data
         public DbSet<LeaveCredit> LeaveCredits { get; set; }
         public DbSet<LeaveApplication> LeaveApplications { get; set; }
         public DbSet<PayrollRecord> PayrollRecords { get; set; }
+        public DbSet<EmployeeDeduction> EmployeeDeductions { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<SystemSetting> SystemSettings { get; set; }
 
@@ -156,6 +157,16 @@ namespace PECCI_HRIS.Data
 
             modelBuilder.Entity<LeaveApplication>()
                 .Property(la => la.NumberOfDays).HasColumnType("decimal(5,1)");
+
+            // EmployeeDeduction
+            modelBuilder.Entity<EmployeeDeduction>()
+                .HasOne(d => d.Employee)
+                .WithMany()
+                .HasForeignKey(d => d.EmployeeID)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<EmployeeDeduction>()
+                .Property(d => d.Amount).HasColumnType("decimal(18,2)");
 
             // Seed data
             SeedData(modelBuilder);

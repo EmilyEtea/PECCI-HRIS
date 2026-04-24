@@ -1,0 +1,182 @@
+@model IEnumerable<PECCI_HRIS.ViewModels.DeductionListViewModel>
+@{
+    ViewData["Title"] = "Deductions";
+    int month = ViewBag.Month;
+    int year  = ViewBag.Year;
+    var monthName = new DateTime(year, month, 1).ToString("MMMM yyyy");
+}
+
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-hand-holding-usd me-2"></i>Deductions</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Dashboard" asp-action="Index">Dashboard</a></li>
+                <li class="breadcrumb-item active">Deductions</li>
+            </ol>
+        </nav>
+    </div>
+    <div>
+        <a asp-action="Create" class="btn btn-pecci-primary">
+            <i class="fas fa-plus me-1"></i> Add Deduction
+        </a>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label small mb-1">Month</label>
+                <select name="month" class="form-select form-select-sm">
+                    @for (int m = 1; m <= 12; m++)
+                    {
+                        <option value="@m" selected="@(m == month)">@(new DateTime(year, m, 1).ToString("MMMM"))</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label small mb-1">Year</label>
+                <select name="year" class="form-select form-select-sm">
+                    @for (int y = DateTime.Today.Year; y >= DateTime.Today.Year - 3; y--)
+                    {
+                        <option value="@y" selected="@(y == year)">@y</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label small mb-1">Cutoff</label>
+                <select name="cutoff" class="form-select form-select-sm">
+                    <option value="">All</option>
+                    <option value="1-15" selected="@(ViewBag.Cutoff == "1-15")">1–15</option>
+                    <option value="16-30" selected="@(ViewBag.Cutoff == "16-30")">16–30</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label small mb-1">Employee</label>
+                <select name="employeeId" class="form-select form-select-sm">
+                    <option value="">All Employees</option>
+                    @foreach (var e in ViewBag.Employees)
+                    {
+                        <option value="@e.Value" selected="@(e.Value == ViewBag.EmployeeId?.ToString())">@e.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-sm btn-pecci-primary">
+                    <i class="fas fa-filter me-1"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Summary card -->
+<div class="row g-3 mb-3">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <div class="text-muted small">Total Deductions</div>
+                <div class="fw-bold fs-5 text-danger">₱@ViewBag.TotalAmount.ToString("N2")</div>
+                <div class="text-muted" style="font-size:0.75rem;">@monthName</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body py-3">
+                <div class="text-muted small">Records</div>
+                <div class="fw-bold fs-5">@Model.Count()</div>
+                <div class="text-muted" style="font-size:0.75rem;">Active + Applied</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-list me-1"></i> Deduction Records — @monthName</span>
+        <span class="badge bg-secondary">@Model.Count() record(s)</span>
+    </div>
+    <div class="card-body p-0">
+        @if (!Model.Any())
+        {
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                No deductions found for this period.
+                <div class="mt-2">
+                    <a asp-action="Create" class="btn btn-sm btn-pecci-primary">Add Deduction</a>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th>Cutoff</th>
+                            <th class="text-end">Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var d in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">@d.EmployeeName</div>
+                                    <div class="text-muted small">@d.EmployeeNo</div>
+                                </td>
+                                <td><span class="badge bg-secondary">@d.DeductionType</span></td>
+                                <td>@d.Description</td>
+                                <td>@d.Year-@d.Month.ToString("D2") &nbsp;@d.CutoffPeriod</td>
+                                <td class="text-end fw-semibold text-danger">₱@d.Amount.ToString("N2")</td>
+                                <td>
+                                    @{
+                                        var badgeClass = d.Status switch {
+                                            "Applied"   => "bg-success",
+                                            "Cancelled" => "bg-danger",
+                                            _           => "bg-warning text-dark"
+                                        };
+                                    }
+                                    <span class="badge @badgeClass">@d.Status</span>
+                                </td>
+                                <td>
+                                    @if (d.Status == "Active")
+                                    {
+                                        <a asp-action="Edit" asp-route-id="@d.DeductionID"
+                                           class="btn btn-sm btn-outline-secondary me-1">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <form asp-action="Cancel" asp-route-id="@d.DeductionID"
+                                              method="post" class="d-inline"
+                                              onsubmit="return confirm('Cancel this deduction?')">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr class="table-light fw-bold">
+                            <td colspan="4" class="text-end">Total (Active + Applied):</td>
+                            <td class="text-end text-danger">₱@Model.Where(d => d.Status != "Cancelled").Sum(d => d.Amount).ToString("N2")</td>
+                            <td colspan="2"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        }
+    </div>
+</div>
