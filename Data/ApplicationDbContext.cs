@@ -161,7 +161,7 @@ namespace PECCI_HRIS.Data
             // EmployeeDeduction
             modelBuilder.Entity<EmployeeDeduction>()
                 .HasOne(d => d.Employee)
-                .WithMany()
+                .WithMany(e => e.EmployeeDeductions)
                 .HasForeignKey(d => d.EmployeeID)
                 .OnDelete(DeleteBehavior.Restrict);
 
