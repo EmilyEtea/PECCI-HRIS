@@ -56,7 +56,7 @@ namespace PECCI_HRIS.ViewModels
 
     public class PayslipViewModel : PayrollSummaryViewModel
     {
-        public string CompanyName { get; set; } = "PLDT Employees Credit Cooperative, Inc.";
+        public string CompanyName { get; set; } = "PECCI Multipurpose Cooperative";
         public string CompanyAddress { get; set; } = "4th Floor Universal RE Building, Paseo de Roxas cor. Perea St. Makati City";
         public DateTime GeneratedAt { get; set; } = DateTime.Now;
     }

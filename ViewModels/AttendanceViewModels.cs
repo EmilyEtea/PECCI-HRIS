@@ -23,4 +23,25 @@ namespace PECCI_HRIS.ViewModels
                 ? $"{(int)(TotalOvertimeMinutes / 60)}h {(int)(TotalOvertimeMinutes % 60)}m"
                 : $"{(int)TotalOvertimeMinutes}m";
     }
+
+    /// <summary>Request body from barcode/RFID scanner device.</summary>
+    public class ScanRequest
+    {
+        public string EmployeeNo { get; set; } = string.Empty;
+        public string? DeviceIP  { get; set; }
+    }
+
+    /// <summary>Response sent back to the scanner terminal.</summary>
+    public class ScanResult
+    {
+        public bool   Success      { get; set; }
+        public string Action       { get; set; } = string.Empty; // TIME IN | TIME OUT | CONFIRM TIME IN | CONFIRM TIME OUT
+        public string EmployeeNo   { get; set; } = string.Empty;
+        public string EmployeeName { get; set; } = string.Empty;
+        public string Department   { get; set; } = string.Empty;
+        public string TimeRecorded { get; set; } = string.Empty;
+        public string Message      { get; set; } = string.Empty;
+        public bool   IsLate       { get; set; }
+        public bool   IsPending    { get; set; } // true = waiting for confirmation scan
+    }
 }
