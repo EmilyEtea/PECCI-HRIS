@@ -99,6 +99,7 @@ namespace PECCI_HRIS.Models
         public virtual ICollection<LeaveApplication> LeaveApplications { get; set; } = new List<LeaveApplication>();
         public virtual ICollection<LeaveCredit> LeaveCredits { get; set; } = new List<LeaveCredit>();
         public virtual ICollection<PayrollRecord> PayrollRecords { get; set; } = new List<PayrollRecord>();
+        public virtual ICollection<EmployeeDeduction> EmployeeDeductions { get; set; } = new List<EmployeeDeduction>();
         public virtual User? UserAccount { get; set; }
 
         [NotMapped]
