@@ -104,6 +104,22 @@ namespace PECCI_HRIS.Controllers
         [Authorize(Roles = "HR Admin,HR Staff")]
         public async Task<IActionResult> Create(EmployeeViewModel vm)
         {
+            // Business logic validation
+            if (vm.DateOfBirth >= DateTime.Today)
+                ModelState.AddModelError("DateOfBirth", "Date of birth cannot be today or in the future.");
+            else if ((DateTime.Today - vm.DateOfBirth).TotalDays / 365.25 < 18)
+                ModelState.AddModelError("DateOfBirth", "Employee must be at least 18 years old.");
+
+            if (vm.DateHired < vm.DateOfBirth)
+                ModelState.AddModelError("DateHired", "Date hired cannot be before date of birth.");
+
+            if (vm.DateRegularized.HasValue && vm.DateRegularized < vm.DateHired)
+                ModelState.AddModelError("DateRegularized", "Date regularized cannot be before date hired.");
+
+            bool duplicateNo = await _context.Employees.AnyAsync(e => e.EmployeeNo == vm.EmployeeNo);
+            if (duplicateNo)
+                ModelState.AddModelError("EmployeeNo", "This Employee No. is already in use.");
+
             if (!ModelState.IsValid)
             {
                 vm.Departments = await GetDepartmentList();
@@ -198,6 +214,18 @@ namespace PECCI_HRIS.Controllers
         [Authorize(Roles = "HR Admin,HR Staff")]
         public async Task<IActionResult> Edit(EmployeeViewModel vm)
         {
+            // Business logic validation
+            if (vm.DateOfBirth >= DateTime.Today)
+                ModelState.AddModelError("DateOfBirth", "Date of birth cannot be today or in the future.");
+            else if ((DateTime.Today - vm.DateOfBirth).TotalDays / 365.25 < 18)
+                ModelState.AddModelError("DateOfBirth", "Employee must be at least 18 years old.");
+
+            if (vm.DateHired < vm.DateOfBirth)
+                ModelState.AddModelError("DateHired", "Date hired cannot be before date of birth.");
+
+            if (vm.DateRegularized.HasValue && vm.DateRegularized < vm.DateHired)
+                ModelState.AddModelError("DateRegularized", "Date regularized cannot be before date hired.");
+
             if (!ModelState.IsValid)
             {
                 vm.Departments = await GetDepartmentList();

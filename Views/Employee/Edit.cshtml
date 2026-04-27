@@ -48,6 +48,7 @@
                         <div class="col-md-3">
                             <label asp-for="DateOfBirth" class="form-label"></label>
                             <input asp-for="DateOfBirth" type="date" class="form-control" required />
+                            <span asp-validation-for="DateOfBirth" class="text-danger small"></span>
                         </div>
                         <div class="col-md-3">
                             <label asp-for="Gender" class="form-label"></label>
@@ -55,6 +56,7 @@
                                 <option value="Male">Male</option>
                                 <option value="Female">Female</option>
                             </select>
+                            <span asp-validation-for="Gender" class="text-danger small"></span>
                         </div>
                         <div class="col-md-3">
                             <label asp-for="CivilStatus" class="form-label"></label>
@@ -132,10 +134,12 @@
                         <div class="col-md-3">
                             <label asp-for="DateHired" class="form-label"></label>
                             <input asp-for="DateHired" type="date" class="form-control" required />
+                            <span asp-validation-for="DateHired" class="text-danger small"></span>
                         </div>
                         <div class="col-md-3">
                             <label asp-for="DateRegularized" class="form-label"></label>
                             <input asp-for="DateRegularized" type="date" class="form-control" />
+                            <span asp-validation-for="DateRegularized" class="text-danger small"></span>
                         </div>
                         <div class="col-md-3">
                             <label asp-for="EmploymentStatus" class="form-label"></label>
@@ -177,3 +181,7 @@
     Developed by <strong>UST Interns</strong>:
     Arkin Reinier Aguilar &bull; Maxenne De Guzman &bull; Bernice Elyssa Soriano &bull; Emily Etea
 </div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}

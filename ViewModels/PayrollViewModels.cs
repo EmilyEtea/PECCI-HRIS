@@ -5,13 +5,19 @@ namespace PECCI_HRIS.ViewModels
 {
     public class PayrollComputeViewModel
     {
-        [Required, Display(Name = "Cutoff Period")]
-        public string CutoffPeriod { get; set; } = string.Empty; // "1-15" or "16-30"
+        [Required(ErrorMessage = "Cutoff period is required.")]
+        [RegularExpression(@"^(1-15|16-30)$", ErrorMessage = "Cutoff period must be '1-15' or '16-30'.")]
+        [Display(Name = "Cutoff Period")]
+        public string CutoffPeriod { get; set; } = string.Empty;
 
-        [Required, Display(Name = "Month")]
+        [Required(ErrorMessage = "Month is required.")]
+        [Range(1, 12, ErrorMessage = "Month must be between 1 and 12.")]
+        [Display(Name = "Month")]
         public int Month { get; set; } = DateTime.Today.Month;
 
-        [Required, Display(Name = "Year")]
+        [Required(ErrorMessage = "Year is required.")]
+        [Range(2020, 2099, ErrorMessage = "Year must be between 2020 and 2099.")]
+        [Display(Name = "Year")]
         public int Year { get; set; } = DateTime.Today.Year;
 
         public int? EmployeeID { get; set; }

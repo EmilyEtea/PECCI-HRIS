@@ -26,14 +26,17 @@ namespace PECCI_HRIS.ViewModels
         public decimal Amount { get; set; }
 
         [Required(ErrorMessage = "Cutoff period is required.")]
+        [RegularExpression(@"^(1-15|16-30)$", ErrorMessage = "Cutoff period must be '1-15' or '16-30'.")]
         [Display(Name = "Cutoff Period")]
         public string CutoffPeriod { get; set; } = string.Empty;
 
         [Required]
+        [Range(1, 12, ErrorMessage = "Month must be between 1 and 12.")]
         [Display(Name = "Month")]
         public int Month { get; set; } = DateTime.Today.Month;
 
         [Required]
+        [Range(2020, 2099, ErrorMessage = "Year must be between 2020 and 2099.")]
         [Display(Name = "Year")]
         public int Year { get; set; } = DateTime.Today.Year;
 

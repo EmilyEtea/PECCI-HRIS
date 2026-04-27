@@ -32,6 +32,7 @@ namespace PECCI_HRIS.ViewModels
         [Required(ErrorMessage = "Date of birth is required.")]
         [DataType(DataType.Date)]
         [Display(Name = "Date of Birth")]
+        // Must be at least 18 years old and not in the future
         public DateTime DateOfBirth { get; set; }
 
         [Required(ErrorMessage = "Gender is required.")]

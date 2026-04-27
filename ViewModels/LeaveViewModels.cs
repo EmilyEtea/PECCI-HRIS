@@ -11,12 +11,14 @@ namespace PECCI_HRIS.ViewModels
         [Required, Display(Name = "Leave Type")]
         public int LeaveTypeID { get; set; }
 
-        [Required, Display(Name = "Start Date")]
+        [Required(ErrorMessage = "Start date is required.")]
         [DataType(DataType.Date)]
+        [Display(Name = "Start Date")]
         public DateTime StartDate { get; set; } = DateTime.Today;
 
-        [Required, Display(Name = "End Date")]
+        [Required(ErrorMessage = "End date is required.")]
         [DataType(DataType.Date)]
+        [Display(Name = "End Date")]
         public DateTime EndDate { get; set; } = DateTime.Today;
 
         [Display(Name = "Reason")]
