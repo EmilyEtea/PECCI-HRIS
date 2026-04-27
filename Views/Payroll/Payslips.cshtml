@@ -163,6 +163,13 @@
                                     <td class="text-end">₱@slip.UndertimeDeductions.ToString("N2")</td>
                                 </tr>
                             }
+                            @if (slip.OtherDeductions > 0)
+                            {
+                                <tr>
+                                    <td>Other Deductions</td>
+                                    <td class="text-end">₱@slip.OtherDeductions.ToString("N2")</td>
+                                </tr>
+                            }
                             <tr style="border-top:2px solid var(--pecci-border);font-weight:700;">
                                 <td>Total Deductions</td>
                                 <td class="text-end text-danger">₱@slip.TotalDeductions.ToString("N2")</td>

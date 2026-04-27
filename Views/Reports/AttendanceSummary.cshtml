@@ -1,4 +1,4 @@
-@model dynamic
+@model IEnumerable<PECCI_HRIS.ViewModels.AttendanceSummaryRow>
 @{
     ViewData["Title"] = "Attendance Summary Report";
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -101,13 +101,13 @@
                     {
                         foreach (var row in Model)
                         {
-                            totalPresent  += (int)row.TotalPresent;
-                            totalLate     += (int)row.TotalLate;
-                            totalAbsent   += (int)row.TotalAbsent;
-                            totalOnLeave  += (int)row.TotalOnLeave;
-                            totalLateMin  += (double)row.TotalLateMinutes;
-                            totalOTMin    += (double)row.TotalOvertimeMinutes;
-                            totalHours    += (double)row.TotalHoursWorked;
+                            totalPresent  += row.TotalPresent;
+                            totalLate     += row.TotalLate;
+                            totalAbsent   += row.TotalAbsent;
+                            totalOnLeave  += row.TotalOnLeave;
+                            totalLateMin  += row.TotalLateMinutes;
+                            totalOTMin    += row.TotalOvertimeMinutes;
+                            totalHours    += row.TotalHoursWorked;
                             <tr>
                                 <td>
                                     <div class="fw-semibold">@row.Employee.FullName</div>

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PECCI_HRIS.Data;
+using PECCI_HRIS.ViewModels;
 
 namespace PECCI_HRIS.Controllers
 {
@@ -61,7 +62,7 @@ namespace PECCI_HRIS.Controllers
 
             var summary = records
                 .GroupBy(a => a.EmployeeID)
-                .Select(g => new
+                .Select(g => new AttendanceSummaryRow
                 {
                     Employee             = g.First().Employee!,
                     TotalPresent         = g.Count(r => r.AttendanceStatus == "Present"),
@@ -78,6 +79,7 @@ namespace PECCI_HRIS.Controllers
             ViewBag.Month        = month;
             ViewBag.Year         = year;
             ViewBag.MonthName    = startDate.ToString("MMMM yyyy");
+            ViewBag.PeriodLabel  = startDate.ToString("MMMM yyyy");
             ViewBag.DepartmentId = departmentId;
             ViewBag.Departments  = await _context.Departments.Where(d => d.IsActive).OrderBy(d => d.DepartmentName).ToListAsync();
             ViewBag.GeneratedAt  = DateTime.Now;

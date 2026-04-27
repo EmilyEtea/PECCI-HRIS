@@ -45,6 +45,7 @@ namespace PECCI_HRIS.ViewModels
         public decimal WithholdingTax { get; set; }
         public decimal LateDeductions { get; set; }
         public decimal UndertimeDeductions { get; set; }
+        public decimal OtherDeductions { get; set; }
 
         // Earnings breakdown
         public decimal OvertimePay { get; set; }

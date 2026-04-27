@@ -126,36 +126,46 @@ namespace PECCI_HRIS.Controllers
                 decimal pagIbig   = govDeductions.PagIbig / 2;
                 decimal tax       = govDeductions.WithholdingTax / 2;
 
-                decimal lateDeduction      = _attendanceService.ComputeLateDeduction(totalLateMinutes, basicSalary * 2) ;
-                decimal undertimeDeduction = _attendanceService.ComputeUndertimeDeduction(0, basicSalary * 2);
+                decimal lateDeduction      = _attendanceService.ComputeLateDeduction(totalLateMinutes, basicSalary * 2);
+                decimal undertimeDeduction = _attendanceService.ComputeUndertimeDeduction(attendance.Sum(a => a.UndertimeMinutes ?? 0), basicSalary * 2);
                 decimal overtimePay        = _attendanceService.ComputeOvertimePay(totalOvertimeMinutes, basicSalary * 2);
 
                 // Absent deduction
                 decimal dailyRate = (basicSalary * 2) / 22m;
                 decimal absentDeduction = dailyRate * daysAbsent;
 
+                // Custom deductions (loans, cash advances, etc.) from EmployeeDeductions table
+                var customDeductions = await _context.EmployeeDeductions
+                    .Where(d => d.EmployeeID == emp.EmployeeID
+                             && d.Month == vm.Month
+                             && d.Year == vm.Year
+                             && d.CutoffPeriod == vm.CutoffPeriod
+                             && d.Status == "Active")
+                    .ToListAsync();
+                decimal customDeductionTotal = customDeductions.Sum(d => d.Amount);
+
                 var record = new PayrollRecord
                 {
-                    EmployeeID            = emp.EmployeeID,
-                    PayPeriod             = payPeriod,
-                    PeriodStart           = periodStart,
-                    PeriodEnd             = periodEnd,
-                    BasicSalary           = basicSalary,
-                    OvertimePay           = overtimePay,
-                    SSSContribution       = sss,
+                    EmployeeID             = emp.EmployeeID,
+                    PayPeriod              = payPeriod,
+                    PeriodStart            = periodStart,
+                    PeriodEnd              = periodEnd,
+                    BasicSalary            = basicSalary,
+                    OvertimePay            = overtimePay,
+                    SSSContribution        = sss,
                     PhilHealthContribution = philHealth,
-                    PagIbigContribution   = pagIbig,
-                    WithholdingTax        = tax,
-                    LateDeductions        = lateDeduction,
-                    UndertimeDeductions   = undertimeDeduction,
-                    OtherDeductions       = absentDeduction,
-                    DaysWorked            = daysWorked,
-                    DaysAbsent            = daysAbsent,
-                    TotalOvertimeHours    = totalOvertimeMinutes / 60.0,
-                    TotalLateMinutes      = totalLateMinutes,
-                    Status                = "Draft",
-                    CreatedAt             = DateTime.Now,
-                    CreatedBy             = GetCurrentUserID()
+                    PagIbigContribution    = pagIbig,
+                    WithholdingTax         = tax,
+                    LateDeductions         = lateDeduction,
+                    UndertimeDeductions    = undertimeDeduction,
+                    OtherDeductions        = absentDeduction + customDeductionTotal,
+                    DaysWorked             = daysWorked,
+                    DaysAbsent             = daysAbsent,
+                    TotalOvertimeHours     = totalOvertimeMinutes / 60.0,
+                    TotalLateMinutes       = totalLateMinutes,
+                    Status                 = "Draft",
+                    CreatedAt              = DateTime.Now,
+                    CreatedBy              = GetCurrentUserID()
                 };
 
                 // Store computed totals
@@ -164,6 +174,11 @@ namespace PECCI_HRIS.Controllers
                 record.StoredNetPay          = record.NetPay;
 
                 _context.PayrollRecords.Add(record);
+
+                // Mark custom deductions as Applied
+                foreach (var d in customDeductions)
+                    d.Status = "Applied";
+
                 computed++;
             }
 
@@ -213,6 +228,7 @@ namespace PECCI_HRIS.Controllers
                 WithholdingTax         = r.WithholdingTax,
                 LateDeductions         = r.LateDeductions,
                 UndertimeDeductions    = r.UndertimeDeductions,
+                OtherDeductions        = r.OtherDeductions,
                 TotalDeductions        = r.StoredTotalDeductions,
                 NetPay                 = r.StoredNetPay,
                 DaysWorked             = r.DaysWorked,

@@ -470,6 +470,7 @@ namespace PECCI_HRIS.Controllers
             ViewBag.Year       = year;
             ViewBag.EmployeeId = employeeId;
             ViewBag.MonthName  = startDate.ToString("MMMM yyyy");
+            ViewBag.PeriodLabel = startDate.ToString("MMMM yyyy");
 
             return View(summary);
         }
