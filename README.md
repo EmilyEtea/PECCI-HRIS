@@ -1,253 +1,218 @@
 # PECCI HRIS — Human Resource Information System
 
-**Multipurpose Cooperative**
+**PECCI Multipurpose Cooperative**
 
-A comprehensive web-based HRIS built with ASP.NET Core 8.0, Entity Framework Core, and SQL Server. Features employee management, attendance tracking with Philippine labor law compliance, leave management, and payroll computation based on BIR TRAIN Law.
+A comprehensive web-based HRIS built with **ASP.NET Core MVC (.NET 10)**, Entity Framework Core 9, and SQL Server. Covers the full employee lifecycle — from onboarding to payroll — with full Philippine regulatory compliance (BIR TRAIN Law, DOLE, SSS, PhilHealth, Pag-IBIG).
+
+> **Live at:** http://localhost:5000 (local dev)
+> **Repository:** https://github.com/EmilyEtea/PECCI-HRIS
 
 ---
 
 ## 🎓 Development Team
 
-**UST Interns:**
-- **Arkin Reinier Aguilar**
-- **Maxenne De Guzman**
-- **Bernice Elyssa Soriano**
-- **Emily Etea**
+**UST Interns — 2026**
+
+| Name | Role |
+|---|---|
+| Arkin Reinier Aguilar | Developer |
+| Maxenne De Guzman | Developer |
+| Bernice Elyssa Soriano | Developer |
+| Emily Etea | Developer |
 
 ---
 
 ## ✨ Features
 
-### Sprint 1 — Authentication & Employee Management
-- ✅ Role-based authentication (HR Admin, HR Staff, Manager, Employee)
-- ✅ Password hashing with BCrypt
-- ✅ Employee CRUD operations
+### Authentication & Access Control
+- ✅ Secure login with BCrypt password hashing
+- ✅ Role-based access: **HR Admin, HR Staff, Manager, Employee**
+- ✅ 8-hour session timeout (30-day "Remember Me" option)
+- ✅ Audit trail — every action logged with IP address
+
+### Employee Management
+- ✅ Full CRUD — create, view, edit, deactivate employees
+- ✅ Employee profile with personal info, government IDs (SSS, PhilHealth, Pag-IBIG, TIN)
 - ✅ Department & Position management
-- ✅ Employee profile with government IDs
+- ✅ Auto-generated employee numbers (EMP-XXXX)
+- ✅ Leave credits auto-allocated on hire
 
-### Sprint 2 — Attendance & Timekeeping
-- ✅ Time In / Time Out functionality
-- ✅ **Philippine-compliant grace period** (8:00 + 5 min = 8:05 cutoff; 8:06 = late)
-- ✅ Automatic late computation (minutes counted from 8:00, not from grace period end)
-- ✅ Overtime tracking with configurable threshold
+### Attendance & Timekeeping
+- ✅ Web-based Time In / Time Out
+- ✅ **Barcode / RFID Scanner Terminal** — standalone kiosk page, no login required
+  - Lookup by Employee No, Display Name, or Full Name
+  - Double-scan confirmation (scan twice within 10s to confirm)
+- ✅ **Philippine-compliant grace period logic**
+  - 08:00 start + 5 min grace = 08:05:00 cutoff
+  - 08:05:01 → LATE (minutes counted from 08:00, not from grace period end)
+- ✅ Overtime tracking (credited only if ≥ 30 min beyond work end)
 - ✅ Undertime computation
-- ✅ Manual attendance adjustment (HR only)
-- ✅ Attendance history & summary reports
-- ✅ **Fully adjustable settings** (grace period, work hours, deduction types)
+- ✅ Manual attendance adjustment (HR only) with auto-recompute
+- ✅ Monthly attendance summary report
+- ✅ All rules fully configurable from Settings UI
 
-### Sprint 3 — Leave Management
-- ✅ Leave types (VL, SL, Emergency, Maternity, Paternity)
-- ✅ Leave credit allocation & tracking
-- ✅ Leave application with approval workflow
-- ✅ Auto-deduction of leave credits
-- ✅ Leave balance display
+### Leave Management
+- ✅ 5 pre-configured leave types (VL, SL, Emergency, Maternity, Paternity)
+- ✅ Leave application with **two-step approval workflow** (Manager → HR)
+- ✅ Real-time leave credit balance tracking
+- ✅ Pending credits reserved during application; released on rejection/cancellation
+- ✅ Annual leave credit refresh (auto on startup, manual from admin panel)
 
-### Sprint 4 — Payroll Integration
+### Deductions
+- ✅ Add custom deductions per employee per cutoff period
+- ✅ Types: SSS Loan, Pag-IBIG Loan, PECCI Loan, Cash Advance, Other
+- ✅ **Automatically picked up during payroll computation**
+- ✅ Status lifecycle: Active → Applied (auto) / Cancelled (manual)
+
+### Payroll
 - ✅ **BIR TRAIN Law (RA 10963) tax computation** — RR 2-2023 (2023 onwards)
-- ✅ **SSS contribution** (2026 table, 4.5% employee share)
-- ✅ **PhilHealth contribution** (2.5% employee share, ₱500–₱5,000 cap)
-- ✅ **Pag-IBIG contribution** (2%, max ₱100/month)
-- ✅ Overtime pay computation (DOLE rates: 1.25x regular, 1.30x rest day, 2.0x holiday)
-- ✅ Night differential (10% of hourly rate, 10pm–6am)
-- ✅ Late & undertime deductions (auto-computed from daily rate or fixed amount)
-- ✅ Payroll computation per cutoff (15th & 30th)
-- ✅ Payslip generation (PDF)
+- ✅ **SSS** (4.5% of MSC, 2026 table, ₱4,000–₱30,000 MSC range)
+- ✅ **PhilHealth** (2.5% employee share, ₱500–₱5,000/month cap)
+- ✅ **Pag-IBIG** (2%, max ₱100/month)
+- ✅ Overtime pay (DOLE rates: 1.25× regular, 1.30× rest day, 2.0× holiday)
+- ✅ Late & undertime deductions (auto-computed from daily rate)
+- ✅ Absent deductions (daily rate × days absent)
+- ✅ Custom deductions from Deductions module integrated automatically
+- ✅ Semi-monthly cutoffs (1st–15th, 16th–30th)
+- ✅ Payslip view with full earnings/deductions breakdown
+- ✅ Finalization workflow (Draft → Finalized)
 
-### Sprint 5 — Reports, Testing & Optimization
-- ✅ Attendance summary reports
-- ✅ Leave summary reports
-- ✅ Payroll summary reports
-- ✅ Audit trail (all user actions logged)
-- ✅ Dashboard with real-time stats
-- ✅ Upcoming birthdays widget
-- ✅ Recent activity feed
+### Reports
+- ✅ Employee List report (filterable by department/status)
+- ✅ Attendance Summary report (monthly, per employee)
+- ✅ Leave Summary report (annual)
+- ✅ Payroll Summary report (monthly totals)
+- ✅ All reports are print-ready
 
-### Admin Features
-- ✅ **System Settings UI** — adjust all rules without touching code
-- ✅ User management
-- ✅ Role & permission management
-- ✅ Audit log viewer
-
----
-
-## 🎨 UI/UX Design
-
-- **PECCI Brand Colors** (from official logo):
-  - Primary Green: `#2E7D32`
-  - Dark Green: `#1B5E20`
-  - Accent Orange: `#E8521A`
-  - Light Green: `#4CAF50`
-- **Bootstrap 5.3** + custom PECCI theme (`pecci-theme.css`)
-- **Font Awesome 6.5** icons
-- **Chart.js** for dashboard visualizations
-- **Responsive design** (mobile-friendly)
-- **PECCI SVG logo** rendered inline in sidebar and login page
+### Administration
+- ✅ **System Settings UI** — adjust all rules without touching code or restarting
+- ✅ User management (create, edit, reset password, activate/deactivate)
+- ✅ Audit trail viewer (filterable by module, action, user, date)
+- ✅ Dashboard with real-time stats, attendance chart, upcoming birthdays
 
 ---
 
 ## 🛠️ Technology Stack
 
-- **Framework:** ASP.NET Core MVC (.NET 10.0)
-- **ORM:** Entity Framework Core 9.0
-- **Database:** SQL Server 2019+ / LocalDB
-- **Authentication:** Cookie-based with BCrypt password hashing
-- **PDF Generation:** iText7
-- **Excel Export:** ClosedXML
-- **Frontend:** Bootstrap 5.3, Font Awesome 6.5, Chart.js
+| Layer | Technology | Version |
+|---|---|---|
+| Backend | ASP.NET Core MVC | .NET 10.0 |
+| ORM | Entity Framework Core | 9.0.4 |
+| Database | SQL Server / LocalDB | 2019+ |
+| Auth | Cookie-based + BCrypt | Built-in / 4.0.3 |
+| PDF | iText7 | 8.0.4 |
+| Excel | ClosedXML | 0.104.2 |
+| Frontend | Bootstrap | 5.3.3 |
+| Icons | Font Awesome | 6.5.0 |
+| Charts | Chart.js | 4.4.2 |
+| Version Control | Git / GitHub | — |
 
 ---
 
 ## 📦 Installation & Setup
 
 ### Prerequisites
-- Visual Studio 2022 (or VS Code with C# extension)
-- .NET 8.0 SDK
-- SQL Server 2019+ or SQL Server Express
-- SQL Server Management Studio (SSMS)
+- [.NET 10.0 SDK](https://dotnet.microsoft.com/download)
+- SQL Server 2019+ or SQL Server Express (LocalDB works out of the box)
+- Visual Studio 2022 or VS Code with C# Dev Kit
 
-### Step 1: Clone the Repository
+### Step 1 — Clone
 ```bash
-git clone <repository-url>
-cd PECCI_HRIS
+git clone https://github.com/EmilyEtea/PECCI-HRIS.git
+cd PECCI-HRIS/PECCI_HRIS
 ```
 
-### Step 2: Configure Database Connection
-
-Open `appsettings.json` and update the connection string:
-
+### Step 2 — Configure connection string
+Edit `appsettings.json`:
 ```json
 "ConnectionStrings": {
-  "DefaultConnection": "Server=localhost\\SQLEXPRESS;Database=PECCI_HRIS_DB;Trusted_Connection=True;TrustServerCertificate=True;"
+  "DefaultConnection": "Server=(localdb)\\MSSQLLocalDB;Database=PECCI_HRIS_DB;Trusted_Connection=True;TrustServerCertificate=True;"
 }
 ```
 
-**Common formats:**
-- Local SQL Express: `Server=localhost\\SQLEXPRESS;...`
-- Named instance: `Server=YOUR_PC_NAME\\SQLEXPRESS;...`
-- SQL Auth: `Server=localhost;Database=PECCI_HRIS_DB;User Id=sa;Password=YourPassword;TrustServerCertificate=True;`
+**Other common formats:**
+| Scenario | Connection String |
+|---|---|
+| SQL Express | `Server=localhost\\SQLEXPRESS;Database=PECCI_HRIS_DB;Trusted_Connection=True;TrustServerCertificate=True;` |
+| Named instance | `Server=YOUR_PC\\SQLEXPRESS;Database=PECCI_HRIS_DB;Trusted_Connection=True;TrustServerCertificate=True;` |
+| SQL Auth | `Server=localhost;Database=PECCI_HRIS_DB;User Id=sa;Password=YourPwd;TrustServerCertificate=True;` |
 
-### Step 3: Restore NuGet Packages
+### Step 3 — Restore packages
 ```bash
 dotnet restore
 ```
 
-### Step 4: Run Migrations
-
-**Via Package Manager Console (Visual Studio):**
-```powershell
-Add-Migration InitialCreate
-Update-Database
-```
-
-**Via CLI:**
+### Step 4 — Apply migrations
 ```bash
-dotnet ef migrations add InitialCreate
 dotnet ef database update
 ```
+This creates the database, all 14 tables, and seeds default data (roles, departments, leave types, system settings).
 
-This will:
-- Create the `PECCI_HRIS_DB` database
-- Create all tables
-- Seed default data (roles, admin user, departments, leave types, system settings)
-
-### Step 5: (Optional) Add Sample Data
-
-Open SSMS, connect to your server, and run:
-```sql
--- File: Database/01_Seed_Data.sql
-```
-
-This adds sample employees and leave credits for testing.
-
-### Step 6: Run the Application
+### Step 5 — Run
 ```bash
 dotnet run
 ```
+Navigate to **http://localhost:5000**
 
-Or press **F5** in Visual Studio.
+### Step 6 — Login
+| Field | Value |
+|---|---|
+| Username | `admin` |
+| Password | `Admin@123` |
 
-Navigate to: `https://localhost:5001` (or the port shown in the console)
-
-### Step 7: Login
-
-**Default credentials:**
-- Username: `admin`
-- Password: `Admin@123`
-
-> ⚠️ **Change this password immediately after first login!**
+> ⚠️ Change the admin password immediately after first login.
 
 ---
 
-## ⚙️ Configuration & Adjustable Settings
+## ⚙️ Adjustable Settings
 
-All attendance, payroll, and tax rules are **fully adjustable** via the **System Settings** page (Admin → Settings).
+All rules are stored in the database and editable from **Admin → System Settings** — no code changes or restarts needed.
 
-### Attendance Rules (Adjustable)
+### Attendance
 | Setting | Default | Description |
 |---|---|---|
-| `WorkStartTime` | 08:00 | Official work start time |
-| `WorkEndTime` | 17:00 | Official work end time |
-| `GracePeriodMinutes` | 5 | Grace period in minutes (08:00 + 5 = 08:05 cutoff) |
-| `GracePeriodSeconds` | 0 | Additional grace period in seconds |
-| `OvertimeThresholdMinutes` | 30 | Minimum OT minutes before pay is credited |
-| `LateDeductionType` | PerMinute | How late deductions are computed |
-| `LateDeductionAmountPerMinute` | 0 | Fixed deduction per minute (0 = auto from daily rate) |
-| `UndertimeDeductionType` | PerMinute | How undertime deductions are computed |
+| WorkStartTime | 08:00 | Official work start |
+| WorkEndTime | 17:00 | Official work end |
+| GracePeriodMinutes | 5 | 08:00 + 5 = 08:05 cutoff |
+| GracePeriodSeconds | 0 | Additional seconds |
+| OvertimeThresholdMinutes | 30 | Min OT before pay credited |
+| LateDeductionType | PerMinute | PerMinute / PerHour / FixedAmount / None |
+| LateDeductionAmountPerMinute | 0 | 0 = auto from daily rate |
+| UndertimeDeductionType | PerMinute | Same options as late |
 
-### Payroll Rules (Adjustable)
+### Payroll
 | Setting | Default | Description |
 |---|---|---|
-| `CutoffDay1` | 15 | First payroll cutoff day |
-| `CutoffDay2` | 30 | Second payroll cutoff day |
-| `OvertimeRateMultiplier` | 1.25 | Regular OT rate (DOLE: 125%) |
-| `RestDayOvertimeRateMultiplier` | 1.30 | Rest day OT rate (DOLE: 130%) |
-| `RegularHolidayRateMultiplier` | 2.00 | Regular holiday rate (DOLE: 200%) |
-| `NightDifferentialRate` | 0.10 | Night diff rate (DOLE: 10% of hourly) |
+| CutoffDay1 | 15 | First cutoff day |
+| CutoffDay2 | 30 | Second cutoff day |
+| OvertimeRateMultiplier | 1.25 | Regular OT (DOLE: 125%) |
+| RestDayOvertimeRateMultiplier | 1.30 | Rest day OT (DOLE: 130%) |
+| RegularHolidayRateMultiplier | 2.00 | Regular holiday (DOLE: 200%) |
+| NightDifferentialRate | 0.10 | Night diff (DOLE: 10%) |
 
-### Tax & Gov't Contributions (Adjustable)
+### Tax & Government Contributions
 | Setting | Default | Description |
 |---|---|---|
-| `TaxTableType` | BIR_TRAIN_LAW_2023 | BIR withholding tax table |
-| `SSSEmployeeRate` | 0.045 | SSS employee share (4.5%) |
-| `PhilHealthRate` | 0.025 | PhilHealth employee share (2.5%) |
-| `PagIbigRate` | 0.02 | Pag-IBIG employee rate (2%) |
-| `PagIbigMaxContribution` | 100.00 | Pag-IBIG max monthly contribution |
-
-**All settings can be changed from the UI without restarting the app.**
+| TaxTableType | BIR_TRAIN_LAW_2023 | BIR withholding tax table |
+| SSSEmployeeRate | 0.045 | SSS employee share (4.5%) |
+| PhilHealthRate | 0.025 | PhilHealth employee share (2.5%) |
+| PagIbigRate | 0.02 | Pag-IBIG rate (2%) |
+| PagIbigMaxContribution | 100.00 | Max Pag-IBIG/month |
 
 ---
 
-## 📊 BIR TRAIN Law Tax Table (2023)
+## 📊 BIR TRAIN Law Tax Table (RR 2-2023, effective Jan 1, 2023)
 
 | Annual Taxable Income | Tax |
 |---|---|
 | Up to ₱250,000 | **Exempt** |
-| ₱250,001 – ₱400,000 | 15% of excess over ₱250K |
-| ₱400,001 – ₱800,000 | ₱22,500 + 20% of excess over ₱400K |
-| ₱800,001 – ₱2,000,000 | ₱102,500 + 25% of excess over ₱800K |
-| ₱2,000,001 – ₱8,000,000 | ₱402,500 + 30% of excess over ₱2M |
-| Over ₱8,000,000 | ₱2,202,500 + 35% of excess over ₱8M |
+| ₱250,001 – ₱400,000 | 15% of excess over ₱250,000 |
+| ₱400,001 – ₱800,000 | ₱22,500 + 20% of excess over ₱400,000 |
+| ₱800,001 – ₱2,000,000 | ₱102,500 + 25% of excess over ₱800,000 |
+| ₱2,000,001 – ₱8,000,000 | ₱402,500 + 30% of excess over ₱2,000,000 |
+| Over ₱8,000,000 | ₱2,202,500 + 35% of excess over ₱8,000,000 |
 
-**Source:** BIR Revenue Regulations No. 2-2023 (RA 10963 TRAIN Law)
-
----
-
-## 🧪 Testing
-
-### Test Accounts (after running seed data)
-- **HR Admin:** `admin` / `Admin@123`
-- **Sample Employees:** EMP-0001 to EMP-0005 (create user accounts via User Management)
-
-### Test Scenarios
-1. **Attendance:**
-   - Time in at 08:05:00 → On time
-   - Time in at 08:05:01 → Late (1 minute from 08:00)
-   - Time out after 17:30 → Overtime credited (if ≥30 min)
-2. **Leave:**
-   - Apply for leave → Manager approves → HR approves → Credits deducted
-3. **Payroll:**
-   - Compute payroll for a cutoff → Verify tax, SSS, PhilHealth, Pag-IBIG
-   - Generate payslip PDF
+Monthly withholding tax = Annual tax ÷ 12
 
 ---
 
@@ -255,63 +220,55 @@ All attendance, payroll, and tax rules are **fully adjustable** via the **System
 
 ```
 PECCI_HRIS/
-├── Configuration/          # Strongly-typed settings classes
-├── Controllers/            # MVC controllers
-├── Data/                   # DbContext & migrations
-├── Database/               # SQL scripts & setup guides
-├── Models/                 # Entity models
-├── Services/               # Business logic (attendance, tax, audit)
-├── ViewModels/             # View models for forms & displays
-├── Views/                  # Razor views
-│   ├── Account/            # Login, logout
-│   ├── Dashboard/          # Main dashboard
-│   ├── Attendance/         # Time in/out, history, adjust
-│   ├── Settings/           # System settings UI
-│   └── Shared/             # Layout, partials
+├── Configuration/          # AttendanceSettings, PayrollSettings, KioskSettings
+├── Controllers/            # 14 MVC controllers
+├── Data/                   # ApplicationDbContext + migrations
+├── Database/               # SQL scripts & setup guide
+├── Documentation/          # Technical documentation
+├── Models/                 # 14 entity models
+├── Services/               # AttendanceComputation, Tax, LeaveCredit, Audit
+├── ViewModels/             # View models for all forms & displays
+├── Views/                  # 55+ Razor views
+│   ├── Account/            # Login, Profile, AccessDenied
+│   ├── Attendance/         # Index, Scanner, Adjust, Summary
+│   ├── Deduction/          # Index, Create, Edit
+│   ├── Dashboard/
+│   ├── Employee/
+│   ├── Leave/
+│   ├── Payroll/
+│   ├── Reports/
+│   ├── Settings/
+│   └── Shared/             # _Layout.cshtml
 ├── wwwroot/
-│   └── css/
-│       └── pecci-theme.css # PECCI brand styling
-├── appsettings.json        # Configuration
-├── Program.cs              # App entry point
-└── README.md               # This file
+│   ├── css/pecci-theme.css # PECCI brand theme
+│   ├── images/pecci-logo.png
+│   └── favicon.png         # Browser tab icon
+├── appsettings.json
+├── Program.cs
+└── HRIS.sln
 ```
 
 ---
 
-## 🔒 Security Features
+## 🔒 Security
 
-- ✅ Password hashing with BCrypt (cost factor: 11)
-- ✅ Role-based authorization
-- ✅ Anti-forgery tokens on all forms
-- ✅ SQL injection protection (EF Core parameterized queries)
-- ✅ Audit trail (all actions logged with IP address)
-- ✅ Session timeout (8 hours)
-- ✅ HTTPS enforcement (production)
-
----
-
-## 📝 Credits & License
-
-**Developed by:**
-- **Arkin Reinier Aguilar**
-- **Maxenne De Guzman**
-- **Bernice Elyssa Soriano**
-- **Emily Etea**
-
-**For:** PECCI
-
-**Internship Program:** University of Santo Tomas (UST)
-
-**Year:** 2026
+- ✅ BCrypt password hashing (cost factor 11)
+- ✅ Role-based authorization on all controllers/actions
+- ✅ Anti-forgery tokens on all POST forms
+- ✅ EF Core parameterized queries (SQL injection protection)
+- ✅ Audit trail with IP address logging
+- ✅ 8-hour session timeout with sliding expiration
+- ✅ HttpOnly cookies
 
 ---
 
-## 📞 Support
+## 📝 Credits
 
-For issues or questions, contact the development team or your HR administrator.
+Developed by **UST Interns** for **PECCI Multipurpose Cooperative**
+University of Santo Tomas (UST) Internship Program — 2026
 
 ---
 
-**© 2026 PECCI — All rights reserved.**
+**© 2026 PECCI Multipurpose Cooperative — All rights reserved.**
 
-*This system complies with Philippine labor laws (DOLE), BIR tax regulations (TRAIN Law RA 10963), and government contribution schedules (SSS, PhilHealth, Pag-IBIG) as of 2026.*
+*Compliant with: BIR TRAIN Law (RA 10963, RR 2-2023) · DOLE Labor Code · SSS · PhilHealth · Pag-IBIG (as of 2026)*

@@ -4,9 +4,10 @@
 
 ---
 
-**Version:** 1.0.0
+**Version:** 1.1.0
 **Year:** 2026
 **Developed by:** UST Interns — Arkin Reinier Aguilar, Maxenne De Guzman, Bernice Elyssa Soriano, Emily Etea
+**Repository:** https://github.com/EmilyEtea/PECCI-HRIS
 
 ---
 
@@ -24,6 +25,12 @@
 10. [User Roles & Permissions](#10-user-roles--permissions)
 11. [API Reference](#11-api-reference)
 12. [Known Issues & Limitations](#12-known-issues--limitations)
+
+---
+
+> **How to export as PDF:**
+> Open this file in VS Code, install the **Markdown PDF** extension (yzane.markdown-pdf),
+> right-click → *Markdown PDF: Export (pdf)*. All tables, diagrams, and code blocks render cleanly.
 
 ---
 
@@ -62,11 +69,12 @@ The system covers:
 | Authentication | Cookie-based (ASP.NET Core) | Built-in |
 | Password Hashing | BCrypt.Net-Next | 4.0.3 |
 | PDF Generation | iText7 | 8.0.4 |
-| Excel Export | ClosedXML | 0.102.2 |
+| Excel Export | ClosedXML | 0.104.2 |
 | Frontend Framework | Bootstrap | 5.3.3 |
 | Icons | Font Awesome | 6.5.0 |
 | Charts | Chart.js | 4.4.2 |
 | IDE | Visual Studio Code / Visual Studio 2022 | — |
+| Version Control | Git / GitHub | — |
 
 ---
 
@@ -77,31 +85,49 @@ The system follows the Model-View-Controller (MVC) architectural pattern:
 
 ```
 PECCI_HRIS/
-├── Configuration/          # Strongly-typed settings (AttendanceSettings, PayrollSettings)
-├── Controllers/            # 13 MVC controllers
-│   ├── AccountController   # Authentication (Login, Logout, Profile)
-│   ├── DashboardController # Dashboard statistics
-│   ├── EmployeeController  # Employee CRUD + Profile
-│   ├── DepartmentController# Department management
-│   ├── PositionController  # Position management
-│   ├── AttendanceController# Time In/Out, Adjust, Summary
-│   ├── LeaveController     # Leave applications, credits, types
-│   ├── PayrollController   # Payroll computation, payslips
-│   ├── ReportsController   # Report generation
-│   ├── UsersController     # User account management
-│   ├── SettingsController  # System settings
-│   ├── AuditLogController  # Audit trail viewer
-│   └── BaseController      # Shared helper methods
+├── Configuration/           # Strongly-typed settings
+│   ├── AttendanceSettings.cs
+│   ├── PayrollSettings.cs
+│   └── KioskSettings.cs
+├── Controllers/             # 14 MVC controllers
+│   ├── AccountController    # Authentication (Login, Logout, Profile)
+│   ├── DashboardController  # Dashboard statistics
+│   ├── EmployeeController   # Employee CRUD + Profile
+│   ├── DepartmentController # Department management
+│   ├── PositionController   # Position management
+│   ├── AttendanceController # Time In/Out, Scanner, Adjust, Summary
+│   ├── LeaveController      # Leave applications, credits, types
+│   ├── DeductionController  # Employee loan/other deductions
+│   ├── PayrollController    # Payroll computation, payslips
+│   ├── ReportsController    # Report generation
+│   ├── UsersController      # User account management
+│   ├── SettingsController   # System settings
+│   ├── AuditLogController   # Audit trail viewer
+│   └── BaseController       # Shared helper methods
 ├── Data/
-│   └── ApplicationDbContext# EF Core DbContext with seed data
-├── Models/                 # 13 entity models
-├── Services/               # 3 business logic services
+│   └── ApplicationDbContext # EF Core DbContext + seed data
+├── Models/                  # 14 entity models
+├── Services/                # 4 business logic services
 │   ├── AttendanceComputationService
 │   ├── TaxComputationService
+│   ├── LeaveCreditService
 │   └── AuditService
-├── ViewModels/             # 11 view model classes
-├── Views/                  # 50+ Razor views
-└── wwwroot/css/            # PECCI brand CSS theme
+├── ViewModels/              # View models for all forms & displays
+├── Views/                   # 55+ Razor views
+│   ├── Account/
+│   ├── Attendance/          # Index, Scanner, Adjust, Summary
+│   ├── Deduction/           # Index, Create, Edit
+│   ├── Dashboard/
+│   ├── Employee/
+│   ├── Leave/
+│   ├── Payroll/
+│   ├── Reports/
+│   ├── Settings/
+│   └── Shared/              # _Layout.cshtml, _ValidationScriptsPartial
+└── wwwroot/
+    ├── css/pecci-theme.css  # PECCI brand CSS theme
+    ├── images/pecci-logo.png
+    └── favicon.png          # Browser tab icon (PECCI logo)
 ```
 
 ### 3.2 Dependency Injection
@@ -110,6 +136,7 @@ All services are registered in `Program.cs`:
 builder.Services.AddScoped<AttendanceComputationService>();
 builder.Services.AddScoped<TaxComputationService>();
 builder.Services.AddScoped<AuditService>();
+builder.Services.AddScoped<LeaveCreditService>();
 ```
 
 ### 3.3 Configuration Binding
@@ -119,29 +146,103 @@ builder.Services.Configure<AttendanceSettings>(
     builder.Configuration.GetSection("AttendanceSettings"));
 builder.Services.Configure<PayrollSettings>(
     builder.Configuration.GetSection("PayrollSettings"));
+builder.Services.Configure<KioskSettings>(
+    builder.Configuration.GetSection("KioskSettings"));
+```
+
+### 3.4 System Architecture Diagram
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                        BROWSER                               │
+│          Bootstrap 5.3 + PECCI Theme + Chart.js              │
+└─────────────────────────┬────────────────────────────────────┘
+                          │  HTTP / HTTPS
+┌─────────────────────────▼────────────────────────────────────┐
+│               ASP.NET Core MVC  (.NET 10)                    │
+│                                                              │
+│  ┌─────────────────┐  ┌──────────────────┐  ┌────────────┐  │
+│  │   Controllers   │→ │    Services      │→ │ ViewModels │  │
+│  │  (14 classes)   │  │  Attendance      │  │            │  │
+│  │  Account        │  │  Tax             │  │            │  │
+│  │  Dashboard      │  │  LeaveCredit     │  │            │  │
+│  │  Employee       │  │  Audit           │  │            │  │
+│  │  Attendance     │  └──────────────────┘  └────────────┘  │
+│  │  Deduction      │                                         │
+│  │  Leave          │  ┌──────────────────┐                   │
+│  │  Payroll        │  │  Configuration   │                   │
+│  │  Reports        │  │  AttendanceSet.  │                   │
+│  │  Users          │  │  PayrollSettings │                   │
+│  │  Settings       │  │  KioskSettings   │                   │
+│  │  AuditLog       │  └──────────────────┘                   │
+│  └─────────────────┘                                         │
+└─────────────────────────┬────────────────────────────────────┘
+                          │  Entity Framework Core 9
+┌─────────────────────────▼────────────────────────────────────┐
+│                  SQL Server / LocalDB                        │
+│                                                              │
+│  Users          Roles           RolePermissions              │
+│  Employees      Departments     Positions                    │
+│  AttendanceRecords              LeaveTypes                   │
+│  LeaveApplications              LeaveCredits                 │
+│  EmployeeDeductions             PayrollRecords               │
+│  AuditLogs      SystemSettings                               │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### 3.5 Request Flow
+
+```
+Browser Request
+      │
+      ▼
+[Cookie Auth Middleware]  ← validates session
+      │
+      ▼
+[Route Matching]  → Controller.Action()
+      │
+      ▼
+[Authorization Check]  ← [Authorize(Roles="...")]
+      │
+      ▼
+[Controller Action]
+      │
+      ├── Queries DbContext (EF Core → SQL Server)
+      ├── Calls Service (business logic)
+      └── Returns View(viewModel) or RedirectToAction()
+            │
+            ▼
+      [Razor View]  → HTML Response → Browser
 ```
 
 ---
 
 ## 4. Database Design
 
-### 4.1 Entity Relationship Overview
+### 4.1 Entity Relationship Diagram
 
 ```
-Users ──────────── Roles
-  │
-  └── Employees ──── Departments
-         │               │
-         │           Positions
-         │
-         ├── AttendanceRecords
-         ├── LeaveApplications ──── LeaveTypes
-         ├── LeaveCredits ────────── LeaveTypes
-         └── PayrollRecords
+┌──────────┐       ┌──────────┐
+│  Roles   │──────<│  Users   │
+└──────────┘  1:N  └────┬─────┘
+                        │ 0:1
+                        ▼
+┌─────────────┐    ┌────────────┐    ┌─────────────┐
+│ Departments │──<─│  Employees │─>──│  Positions  │
+└──────┬──────┘1:N └─────┬──────┘N:1 └─────────────┘
+       │                 │
+       └──────>──────────┘
+       (Positions also belong to Departments)
 
-SystemSettings (standalone — stores adjustable rules)
-AuditLogs (standalone — stores all user actions)
-RolePermissions ──── Roles
+Employees 1:N ──> AttendanceRecords
+Employees 1:N ──> LeaveApplications ──> LeaveTypes
+Employees 1:N ──> LeaveCredits      ──> LeaveTypes
+Employees 1:N ──> PayrollRecords
+Employees 1:N ──> EmployeeDeductions
+
+Roles     1:N ──> RolePermissions
+AuditLogs       (standalone — no FK)
+SystemSettings  (standalone — no FK)
 ```
 
 ### 4.2 Table Descriptions
@@ -153,66 +254,146 @@ RolePermissions ──── Roles
 | Username | nvarchar(50) UNIQUE | Login username |
 | PasswordHash | nvarchar(max) | BCrypt hashed password |
 | Email | nvarchar(100) UNIQUE | User email |
-| RoleID | int FK | Reference to Roles |
-| EmployeeID | int FK nullable | Linked employee record |
-| IsActive | bit | Account status |
-| LastLogin | datetime nullable | Last successful login |
+| RoleID | int FK → Roles | Role assignment |
+| EmployeeID | int FK → Employees nullable | Linked employee record |
+| IsActive | bit | Account active/inactive |
+| LastLogin | datetime2 nullable | Last successful login timestamp |
+| CreatedAt | datetime2 | Account creation timestamp |
 
 #### Employees
 | Column | Type | Description |
 |---|---|---|
 | EmployeeID | int PK | Auto-increment |
-| EmployeeNo | nvarchar(20) UNIQUE | Employee number (e.g., EMP-0001) |
+| EmployeeNo | nvarchar(20) UNIQUE | e.g., EMP-0001 |
 | FirstName | nvarchar(50) | First name |
 | MiddleName | nvarchar(50) nullable | Middle name |
 | LastName | nvarchar(50) | Last name |
-| DateOfBirth | datetime | Date of birth |
-| Gender | nvarchar(10) | Male/Female |
-| DepartmentID | int FK | Department assignment |
-| PositionID | int FK | Position assignment |
-| DateHired | datetime | Employment start date |
-| EmploymentStatus | nvarchar(30) | Regular/Probationary/Contractual/Part-time |
-| Status | nvarchar(20) | Active/Inactive/Resigned/Terminated/Retired |
-| SSSNumber | nvarchar(20) nullable | SSS ID |
-| PhilHealthNumber | nvarchar(20) nullable | PhilHealth ID |
-| PagIbigNumber | nvarchar(20) nullable | Pag-IBIG ID |
-| TINNumber | nvarchar(20) nullable | BIR TIN |
+| Suffix | nvarchar(10) nullable | Jr., Sr., III, etc. |
+| DateOfBirth | datetime2 | Date of birth |
+| Gender | nvarchar(10) | Male / Female |
+| CivilStatus | nvarchar(20) nullable | Single / Married / etc. |
+| Nationality | nvarchar(20) nullable | Default: Filipino |
+| Address | nvarchar(300) nullable | Home address |
+| ContactNumber | nvarchar(20) nullable | Philippine mobile format |
+| PersonalEmail | nvarchar(100) nullable | Personal email |
+| CompanyEmail | nvarchar(100) nullable | Work email |
+| SSSNumber | nvarchar(20) nullable | Format: XX-XXXXXXX-X |
+| PhilHealthNumber | nvarchar(20) nullable | Format: XX-XXXXXXXXX-X |
+| PagIbigNumber | nvarchar(20) nullable | Format: XXXX-XXXX-XXXX |
+| TINNumber | nvarchar(20) nullable | Format: XXX-XXX-XXX |
+| DepartmentID | int FK → Departments | Department assignment |
+| PositionID | int FK → Positions | Position assignment |
+| DateHired | datetime2 | Employment start date |
+| DateRegularized | datetime2 nullable | Regularization date |
+| DateSeparated | datetime2 nullable | Separation date |
+| EmploymentStatus | nvarchar(30) | Regular / Probationary / Contractual / Part-time |
+| Status | nvarchar(20) | Active / Inactive / Resigned / Terminated / Retired |
+| CreatedAt | datetime2 | Record creation timestamp |
+| CreatedBy | int nullable | UserID who created the record |
 
 #### AttendanceRecords
 | Column | Type | Description |
 |---|---|---|
 | AttendanceID | int PK | Auto-increment |
-| EmployeeID | int FK | Employee reference |
-| AttendanceDate | datetime | Date of attendance |
-| TimeIn | time nullable | Time-in timestamp |
-| TimeOut | time nullable | Time-out timestamp |
+| EmployeeID | int FK → Employees | Employee reference |
+| AttendanceDate | datetime2 | Date of attendance |
+| TimeIn | time nullable | Time-in (HH:mm:ss) |
+| TimeOut | time nullable | Time-out (HH:mm:ss) |
+| BreakOut | time nullable | Break start |
+| BreakIn | time nullable | Break end |
 | LateMinutes | float nullable | Computed late minutes |
 | OvertimeMinutes | float nullable | Computed overtime minutes |
 | UndertimeMinutes | float nullable | Computed undertime minutes |
 | TotalHoursWorked | float nullable | Computed total hours |
-| AttendanceStatus | nvarchar(20) | Present/Late/Absent/On Leave/Holiday |
-| IsManualEntry | bit | Whether manually adjusted |
+| AttendanceStatus | nvarchar(20) | Present / Late / Absent / On Leave / Holiday |
+| IsManualEntry | bit | True if HR-adjusted |
+| Remarks | nvarchar(300) nullable | Adjustment notes |
 | AdjustedBy | int nullable | UserID who adjusted |
+| AdjustedAt | datetime2 nullable | Adjustment timestamp |
+| CreatedAt | datetime2 | Record creation timestamp |
+
+#### LeaveApplications
+| Column | Type | Description |
+|---|---|---|
+| LeaveApplicationID | int PK | Auto-increment |
+| EmployeeID | int FK → Employees | Applicant |
+| LeaveTypeID | int FK → LeaveTypes | Type of leave |
+| StartDate | datetime2 | Leave start date |
+| EndDate | datetime2 | Leave end date |
+| NumberOfDays | decimal(5,1) | Computed number of days |
+| Reason | nvarchar(500) nullable | Reason for leave |
+| Status | nvarchar(20) | Pending / Pending HR / Approved / Rejected / Cancelled |
+| ManagerApproverID | int nullable | Manager who acted |
+| ManagerApprovedAt | datetime2 nullable | Manager action timestamp |
+| ManagerRemarks | nvarchar(300) nullable | Manager remarks |
+| HRApproverID | int nullable | HR who acted |
+| HRApprovedAt | datetime2 nullable | HR action timestamp |
+| HRRemarks | nvarchar(300) nullable | HR remarks |
+| AppliedAt | datetime2 | Application submission timestamp |
+
+#### EmployeeDeductions *(new)*
+| Column | Type | Description |
+|---|---|---|
+| DeductionID | int PK | Auto-increment |
+| EmployeeID | int FK → Employees | Employee reference |
+| DeductionType | nvarchar(50) | SSS Loan / Pag-IBIG Loan / PECCI Loan / Cash Advance / Other |
+| Description | nvarchar(200) | Deduction description / reference number |
+| Amount | decimal(18,2) | Deduction amount in PHP |
+| CutoffPeriod | nvarchar(10) | 1-15 or 16-30 |
+| Month | int | Month (1–12) |
+| Year | int | Year (e.g., 2026) |
+| Status | nvarchar(20) | Active / Applied / Cancelled |
+| CreatedAt | datetime2 | Record creation timestamp |
+| CreatedBy | int nullable | UserID who created the record |
+
+> **Status lifecycle:** `Active` → payroll picks it up → `Applied`. HR can set to `Cancelled` before payroll runs.
 
 #### PayrollRecords
 | Column | Type | Description |
 |---|---|---|
 | PayrollID | int PK | Auto-increment |
-| EmployeeID | int FK | Employee reference |
-| PayPeriod | nvarchar(20) | e.g., "2026-01-1-15" |
-| PeriodStart | datetime | Cutoff period start |
-| PeriodEnd | datetime | Cutoff period end |
-| BasicSalary | decimal(18,2) | Semi-monthly basic |
+| EmployeeID | int FK → Employees | Employee reference |
+| PayPeriod | nvarchar(20) | e.g., "2026-04-1-15" |
+| PeriodStart | datetime2 | Cutoff start date |
+| PeriodEnd | datetime2 | Cutoff end date |
+| BasicSalary | decimal(18,2) | Semi-monthly basic pay |
 | OvertimePay | decimal(18,2) | Computed OT pay |
+| HolidayPay | decimal(18,2) | Holiday pay |
+| NightDifferential | decimal(18,2) | Night differential pay |
+| Allowances | decimal(18,2) | Allowances |
+| OtherEarnings | decimal(18,2) | Other earnings |
 | SSSContribution | decimal(18,2) | SSS employee share |
 | PhilHealthContribution | decimal(18,2) | PhilHealth employee share |
 | PagIbigContribution | decimal(18,2) | Pag-IBIG employee share |
 | WithholdingTax | decimal(18,2) | BIR withholding tax |
 | LateDeductions | decimal(18,2) | Late deduction amount |
-| StoredGrossPay | decimal(18,2) | Computed gross pay |
-| StoredTotalDeductions | decimal(18,2) | Computed total deductions |
-| StoredNetPay | decimal(18,2) | Computed net pay |
-| Status | nvarchar(20) | Draft/Finalized/Released |
+| UndertimeDeductions | decimal(18,2) | Undertime deduction amount |
+| OtherDeductions | decimal(18,2) | Absent deductions + custom deductions |
+| StoredGrossPay | decimal(18,2) | Snapshot of gross pay at compute time |
+| StoredTotalDeductions | decimal(18,2) | Snapshot of total deductions |
+| StoredNetPay | decimal(18,2) | Snapshot of net pay |
+| WorkingDays | int | Working days in period |
+| DaysWorked | int | Days employee actually worked |
+| DaysAbsent | int | Days absent |
+| TotalOvertimeHours | float | Total OT hours |
+| TotalLateMinutes | float | Total late minutes |
+| Status | nvarchar(20) | Draft / Finalized / Released |
+| CreatedAt | datetime2 | Computation timestamp |
+| FinalizedAt | datetime2 nullable | Finalization timestamp |
+
+#### SystemSettings
+| Column | Type | Description |
+|---|---|---|
+| SettingID | int PK | Auto-increment |
+| SettingKey | nvarchar(100) | Setting identifier |
+| SettingValue | nvarchar(max) | Current value |
+| SettingGroup | nvarchar(50) | Attendance / Payroll / Tax / General |
+| DataType | nvarchar(20) | string / int / decimal / bool / time |
+| AllowedValues | nvarchar(200) nullable | Comma-separated allowed values |
+| Description | nvarchar(200) nullable | Human-readable description |
+| IsEditable | bit | Whether editable from UI |
+| UpdatedAt | datetime2 | Last update timestamp |
+| UpdatedBy | int nullable | UserID who last updated |
 
 ---
 
@@ -267,16 +448,35 @@ RolePermissions ──── Roles
 | Index | GET | All | Attendance list with filters |
 | TimeIn | POST | All | Record time-in |
 | TimeOut | POST | All | Record time-out |
-| Adjust | GET | HR Admin, HR Staff | Manual adjustment form |
+| Adjust (GET) | GET | HR Admin, HR Staff | Manual adjustment form |
 | Adjust (POST) | POST | HR Admin, HR Staff | Save adjustment + recompute |
 | Summary | GET | HR Admin, HR Staff | Monthly summary report |
+| Scanner | GET | Anonymous | Barcode/ID scanner kiosk terminal |
+| Scan | POST | Anonymous | Process barcode scan (JSON API) |
 
 **Computation Logic (AttendanceComputationService):**
 - Late threshold = WorkStart + GracePeriodMinutes + GracePeriodSeconds
-- Late minutes = ceil(TimeIn - WorkStart) if TimeIn > LateThreshold
-- Overtime = floor(TimeOut - WorkEnd) if TimeOut > WorkEnd AND minutes ≥ OvertimeThreshold
-- Undertime = ceil(WorkEnd - TimeOut) if TimeOut < WorkEnd
-- Hours worked = (TimeOut - TimeIn) - LunchBreakDuration (if worked through lunch)
+- Late minutes = ceil(TimeIn − WorkStart) if TimeIn > LateThreshold
+- Overtime = floor(TimeOut − WorkEnd) if TimeOut > WorkEnd AND minutes ≥ OvertimeThreshold
+- Undertime = ceil(WorkEnd − TimeOut) if TimeOut < WorkEnd
+- Hours worked = (TimeOut − TimeIn) − LunchBreakDuration (if worked through lunch)
+
+**Scanner / Kiosk Terminal:**
+The `/Attendance/Scanner` page is a standalone kiosk display (no login required) that accepts barcode or RFID scans. It supports:
+- Lookup by **Employee No** (exact match)
+- Lookup by **Display Name** ("FirstName LastName")
+- Lookup by **Full Name** ("LastName, FirstName MiddleName")
+- Partial name match (first or last name, if unique)
+- **Double-scan confirmation** — first scan shows a pending confirmation, second scan within 10 seconds commits the Time In or Time Out
+
+```
+Scan Flow:
+  1st scan → "CONFIRM TIME IN — scan again within 10s"
+  2nd scan → TIME IN recorded ✅
+
+  3rd scan → "CONFIRM TIME OUT — scan again within 10s"
+  4th scan → TIME OUT recorded ✅
+```
 
 ### 5.4 Leave Management Module (Sprint 3)
 
@@ -301,10 +501,43 @@ RolePermissions ──── Roles
 4. On Approval: UsedCredits += NumberOfDays, PendingCredits -= NumberOfDays
 5. On Rejection: PendingCredits -= NumberOfDays (released)
 
-### 5.5 Payroll Module (Sprint 4)
+### 5.5 Deductions Module *(new)*
+
+**Controller:** `DeductionController`
+
+| Action | Method | Access | Description |
+|---|---|---|---|
+| Index | GET | HR Admin, HR Staff | List deductions with filters |
+| Create (GET) | GET | HR Admin, HR Staff | Add deduction form |
+| Create (POST) | POST | HR Admin, HR Staff | Save new deduction |
+| Edit (GET) | GET | HR Admin, HR Staff | Edit deduction form |
+| Edit (POST) | POST | HR Admin, HR Staff | Update deduction |
+| Cancel | POST | HR Admin, HR Staff | Cancel a deduction |
+
+**Deduction Types:**
+- SSS Loan
+- Pag-IBIG Loan
+- PECCI Loan
+- Cash Advance
+- Other
+
+**Integration with Payroll:**
+Deductions with `Status = "Active"` matching the employee, month, year, and cutoff period are automatically picked up during payroll computation and added to `OtherDeductions`. After payroll is computed, their status is set to `"Applied"`.
+
+**Status Lifecycle:**
+```
+HR adds deduction → Status: Active
+      │
+      ▼
+Payroll computed → Status: Applied  (auto)
+      OR
+HR cancels → Status: Cancelled  (manual, before payroll runs)
+```
+
+### 5.6 Payroll Module (Sprint 4)
 
 **Controller:** `PayrollController`
-**Service:** `TaxComputationService`, `AttendanceComputationService`
+**Services:** `TaxComputationService`, `AttendanceComputationService`
 
 | Action | Method | Access | Description |
 |---|---|---|---|
@@ -314,14 +547,40 @@ RolePermissions ──── Roles
 | Payslips | GET | HR Admin, HR Staff | View payslips |
 | Finalize | POST | HR Admin | Finalize payroll record |
 
-**Computation Steps:**
-1. Determine period dates from cutoff selection
-2. Get employee's position basic salary (÷2 for semi-monthly)
-3. Retrieve attendance records for the period
-4. Compute: OT pay, late deductions, undertime deductions, absent deductions
-5. Compute government contributions (SSS, PhilHealth, Pag-IBIG) on monthly basis ÷2
-6. Compute withholding tax on monthly taxable income ÷2
-7. Store gross pay, total deductions, net pay
+**Full Computation Steps:**
+1. Determine period dates from cutoff selection (1–15 or 16–30)
+2. Get employee's position `BasicSalary` ÷ 2 (semi-monthly)
+3. Retrieve `AttendanceRecords` for the period
+4. Compute: overtime pay, late deductions, **undertime deductions**, absent deductions
+5. Fetch `EmployeeDeductions` (Active, matching month/year/cutoff) → sum as custom deductions
+6. Compute government contributions (SSS, PhilHealth, Pag-IBIG) on monthly basis ÷ 2
+7. Compute withholding tax on monthly taxable income ÷ 2
+8. Store `StoredGrossPay`, `StoredTotalDeductions`, `StoredNetPay` as snapshots
+9. Mark fetched `EmployeeDeductions` as `"Applied"`
+
+**Payroll Computation Flow:**
+```
+Select Cutoff Period + Month + Year
+          │
+          ▼
+For each Active Employee:
+  ├── Get BasicSalary from Position (÷2)
+  ├── Get AttendanceRecords for period
+  │     ├── Sum OvertimeMinutes → OvertimePay
+  │     ├── Sum LateMinutes → LateDeduction
+  │     ├── Sum UndertimeMinutes → UndertimeDeduction
+  │     └── Count DaysAbsent → AbsentDeduction
+  ├── Get EmployeeDeductions (Active, same period)
+  │     └── Sum Amount → CustomDeductions
+  ├── Compute Gov't Contributions (monthly ÷2)
+  │     ├── SSS (4.5% of MSC)
+  │     ├── PhilHealth (2.5% of basic)
+  │     └── Pag-IBIG (2%, max ₱100)
+  ├── Compute Withholding Tax (BIR TRAIN Law ÷12)
+  ├── OtherDeductions = AbsentDeduction + CustomDeductions
+  ├── Store PayrollRecord (Status: Draft)
+  └── Mark EmployeeDeductions → Applied
+```
 
 ---
 
@@ -542,19 +801,22 @@ dotnet run
 
 | Module | HR Admin | HR Staff | Manager | Employee |
 |---|---|---|---|---|
-| Dashboard | ✅ Full | ✅ Full | ✅ Full | ✅ Own |
-| Employee List | ✅ Full | ✅ Full | ✅ View | ✅ Own |
+| Dashboard | ✅ Full | ✅ Full | ✅ Full | ✅ Own stats |
+| Employee List | ✅ Full | ✅ Full | ✅ View | ✅ Own profile |
 | Employee CRUD | ✅ Full | ✅ Create/Edit | ❌ | ❌ |
 | Employee Deactivate | ✅ | ❌ | ❌ | ❌ |
 | Departments | ✅ Full | ✅ Create/Edit | ❌ | ❌ |
 | Positions | ✅ Full | ✅ Create/Edit | ❌ | ❌ |
-| Attendance View | ✅ All | ✅ All | ✅ Dept | ✅ Own |
+| Attendance View | ✅ All | ✅ All | ✅ View | ✅ Own |
 | Attendance Adjust | ✅ | ✅ | ❌ | ❌ |
+| Scanner Terminal | ✅ | ✅ | ✅ | ✅ (anonymous) |
 | Leave Apply | ✅ | ✅ | ✅ | ✅ |
 | Leave Approve | ✅ | ✅ | ✅ (Manager step) | ❌ |
 | Leave Types | ✅ Full | ✅ View | ❌ | ❌ |
-| Payroll | ✅ Full | ✅ Compute/View | ❌ | ❌ |
+| Deductions | ✅ Full | ✅ Full | ❌ | ❌ |
+| Payroll Compute | ✅ | ✅ | ❌ | ❌ |
 | Payroll Finalize | ✅ | ❌ | ❌ | ❌ |
+| Payslips | ✅ | ✅ | ❌ | ❌ |
 | Reports | ✅ All | ✅ All | ✅ All | ❌ |
 | User Management | ✅ | ❌ | ❌ | ❌ |
 | System Settings | ✅ | ❌ | ❌ | ❌ |
@@ -564,7 +826,7 @@ dotnet run
 
 ## 11. API Reference
 
-### AJAX Endpoints
+### AJAX / JSON Endpoints
 
 #### GET /Employee/GetPositionsByDepartment
 Returns positions for a given department (used in employee form dropdowns).
@@ -578,10 +840,53 @@ Returns positions for a given department (used in employee form dropdowns).
 ]
 ```
 
-#### POST /Settings/UpdateSetting
-Updates a single system setting.
+---
 
-**Body:**
+#### POST /Attendance/Scan
+Processes a barcode or RFID scan from the kiosk terminal. Anonymous — no login required.
+
+**Request Body:**
+```json
+{ "employeeNo": "EMP-0001", "deviceIP": "192.168.1.10" }
+```
+> `employeeNo` can be an Employee No, Display Name ("Juan Dela Cruz"), or Full Name ("Dela Cruz, Juan").
+
+**Response — Pending (first scan):**
+```json
+{
+  "success": true,
+  "action": "CONFIRM TIME IN",
+  "employeeNo": "EMP-0001",
+  "employeeName": "Juan Dela Cruz",
+  "department": "Human Resources",
+  "timeRecorded": "08:02:15",
+  "message": "Scan again within 10s to confirm TIME IN.",
+  "isLate": false,
+  "isPending": true
+}
+```
+
+**Response — Confirmed (second scan):**
+```json
+{
+  "success": true,
+  "action": "TIME IN",
+  "employeeNo": "EMP-0001",
+  "employeeName": "Juan Dela Cruz",
+  "department": "Human Resources",
+  "timeRecorded": "08:02:18",
+  "message": "On time",
+  "isLate": false,
+  "isPending": false
+}
+```
+
+---
+
+#### POST /Settings/UpdateSetting
+Updates a single system setting. Requires HR Admin role.
+
+**Request Body:**
 ```json
 { "settingID": 3, "settingKey": "GracePeriodMinutes", "settingValue": "10" }
 ```
@@ -591,33 +896,42 @@ Updates a single system setting.
 { "success": true, "message": "GracePeriodMinutes updated successfully." }
 ```
 
-#### GET /Settings/PreviewAttendanceRule
-Returns computed late threshold for preview.
+---
 
-**Parameters:** `workStart`, `workEnd`, `graceMins`, `graceSecs`, `otThreshold`
+#### GET /Settings/PreviewAttendanceRule
+Returns computed late threshold for live preview in the Settings UI.
+
+**Parameters:** `workStart` (HH:mm), `workEnd` (HH:mm), `graceMins` (int), `graceSecs` (int), `otThreshold` (int)
 
 **Response:**
 ```json
-{ "success": true, "lateThreshold": "08:10:00", "description": "..." }
+{
+  "success": true,
+  "lateThreshold": "08:10:00",
+  "description": "Employees can time-in up to 08:10:00. Any time-in after that is marked LATE."
+}
 ```
 
 ---
 
 ## 12. Known Issues & Limitations
 
-1. **PDF Payslip Generation** — iText7 is included as a dependency but the PDF export action is not yet implemented. Payslips can be printed via browser print.
+### Implemented but not yet wired
+1. **PDF Payslip Export** — iText7 is included as a dependency. Payslips can currently be printed via browser (`Ctrl+P`). A dedicated PDF download endpoint is planned.
+2. **Excel Report Export** — ClosedXML is included. Reports can be printed via browser. Export-to-Excel buttons are planned for a future sprint.
 
-2. **Excel Export** — ClosedXML is included but export buttons are not yet wired to controllers. Reports can be printed via browser.
+### Not yet implemented
+3. **Email Notifications** — Leave approval/rejection notifications via email are not in this version.
+4. **Biometric Device Integration** — Time In/Out is web-based. The Scanner Terminal supports barcode/RFID via keyboard-wedge scanners. Native biometric device SDK integration is out of scope.
+5. **Holiday Calendar** — Regular and special Philippine holidays must be manually marked in attendance records. An automated holiday calendar (based on Proclamation list) is planned.
+6. **Night Differential Auto-Computation** — Night differential rate is defined in settings but not automatically applied during payroll. Manual entry via `OtherEarnings` is required for now.
+7. **Recurring Deductions** — Each deduction entry covers one cutoff period. Recurring loan deductions (e.g., monthly SSS loan amortization) must be re-entered each cutoff. A recurring deduction schedule feature is planned.
 
-3. **Email Notifications** — Leave approval notifications via email are not implemented in this version.
-
-4. **Biometric Integration** — Time In/Out is manual (web-based). Biometric device integration is not in scope for this version.
-
-5. **Holiday Calendar** — Regular and special holidays must be manually marked in attendance records. An automated holiday calendar is planned for a future sprint.
-
-6. **Night Differential** — Night differential computation is defined in settings but not automatically applied in the current payroll computation. Manual entry via OtherEarnings is required.
+### Performance notes
+8. **Leave Credit Refresh on Startup** — `LeaveCreditService.RefreshAnnualCredits()` runs on every app startup. It is idempotent (only creates missing records) but may be slow if there are many employees. Consider moving to a scheduled background job in production.
 
 ---
 
 *Document prepared by UST Interns: Arkin Reinier Aguilar, Maxenne De Guzman, Bernice Elyssa Soriano, Emily Etea*
-*© 2026 PECCI — PECCI Multipurpose Cooperative*
+*© 2026 PECCI Multipurpose Cooperative — All rights reserved*
+*Repository: https://github.com/EmilyEtea/PECCI-HRIS*
