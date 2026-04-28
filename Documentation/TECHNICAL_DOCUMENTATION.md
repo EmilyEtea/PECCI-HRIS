@@ -917,7 +917,7 @@ Returns computed late threshold for live preview in the Settings UI.
 ## 12. Known Issues & Limitations
 
 ### Implemented but not yet wired
-1. **PDF Payslip Export** — iText7 is included as a dependency. Payslips can currently be printed via browser (`Ctrl+P`). A dedicated PDF download endpoint is planned.
+1. **PDF Payslip Export** — iText7 is included as a dependency. Payslips can currently be printed via browser (`Ctrl+P`). A dedicated PDF download endpoint is planned. [Implementation done- 04/28]
 2. **Excel Report Export** — ClosedXML is included. Reports can be printed via browser. Export-to-Excel buttons are planned for a future sprint.
 
 ### Not yet implemented
@@ -928,7 +928,7 @@ Returns computed late threshold for live preview in the Settings UI.
 7. **Recurring Deductions** — Each deduction entry covers one cutoff period. Recurring loan deductions (e.g., monthly SSS loan amortization) must be re-entered each cutoff. A recurring deduction schedule feature is planned.
 
 ### Performance notes
-8. **Leave Credit Refresh on Startup** — `LeaveCreditService.RefreshAnnualCredits()` runs on every app startup. It is idempotent (only creates missing records) but may be slow if there are many employees. Consider moving to a scheduled background job in production.
+8. **Leave Credit Refresh on Startup** — `LeaveCreditService.RefreshAnnualCredits()` runs on every app startup. It is idempotent (only creates missing records) but may be slow if there are many employees. Consider moving to a scheduled background job in production. [Implementation done- 04/28]
 
 ---
 
