@@ -18,6 +18,13 @@
     <button onclick="window.print()" class="btn btn-outline-secondary no-print">
         <i class="fas fa-print me-1"></i> Print All
     </button>
+    <a asp-action="DownloadAllPdf"
+       asp-route-month="@ViewBag.Month"
+       asp-route-year="@ViewBag.Year"
+       asp-route-employeeId="@ViewBag.EmployeeId"
+       class="btn btn-pecci-primary no-print">
+        <i class="fas fa-file-pdf me-1"></i> Download All PDF
+    </a>
 </div>
 
 @if (!Model.Any())
@@ -42,6 +49,10 @@
             <button onclick="printSlip('@slip.PayrollID')" class="btn btn-sm btn-outline-secondary no-print">
                 <i class="fas fa-print me-1"></i> Print
             </button>
+            <a asp-action="DownloadPdf" asp-route-id="@slip.PayrollID"
+               class="btn btn-sm btn-pecci-primary no-print">
+                <i class="fas fa-file-pdf me-1"></i> PDF
+            </a>
         </div>
         <div class="card-body" id="slip-@slip.PayrollID">
             <div class="row mb-3">

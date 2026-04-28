@@ -16,16 +16,19 @@ namespace PECCI_HRIS.Controllers
         private readonly TaxComputationService _taxService;
         private readonly AttendanceComputationService _attendanceService;
         private readonly AuditService _auditService;
+        private readonly PayslipPdfService _pdfService;
 
         public PayrollController(ApplicationDbContext context,
             TaxComputationService taxService,
             AttendanceComputationService attendanceService,
-            AuditService auditService)
+            AuditService auditService,
+            PayslipPdfService pdfService)
         {
             _context = context;
             _taxService = taxService;
             _attendanceService = attendanceService;
             _auditService = auditService;
+            _pdfService = pdfService;
         }
 
         // ── Payroll List ──────────────────────────────────────────────────────────
@@ -247,6 +250,46 @@ namespace PECCI_HRIS.Controllers
             return View(summaries);
         }
 
+        // ── Download single payslip PDF ───────────────────────────────────────────
+        [HttpGet]
+        public async Task<IActionResult> DownloadPdf(int id)
+        {
+            var record = await _context.PayrollRecords
+                .Include(p => p.Employee).ThenInclude(e => e!.Department)
+                .Include(p => p.Employee!.Position)
+                .FirstOrDefaultAsync(p => p.PayrollID == id);
+
+            if (record == null) return NotFound();
+
+            var slip = MapToViewModel(record);
+            var pdf  = _pdfService.GenerateSingle(slip);
+
+            string filename = $"Payslip_{record.Employee?.EmployeeNo}_{record.PayPeriod}.pdf";
+            return File(pdf, "application/pdf", filename);
+        }
+
+        // ── Download all payslips for a period as one PDF ─────────────────────────
+        [HttpGet]
+        public async Task<IActionResult> DownloadAllPdf(int month, int year, int? employeeId)
+        {
+            var query = _context.PayrollRecords
+                .Include(p => p.Employee).ThenInclude(e => e!.Department)
+                .Include(p => p.Employee!.Position)
+                .Where(p => p.PeriodStart.Year == year && p.PeriodStart.Month == month);
+
+            if (employeeId.HasValue)
+                query = query.Where(p => p.EmployeeID == employeeId);
+
+            var records = await query.OrderBy(p => p.Employee!.LastName).ToListAsync();
+            if (!records.Any()) return NotFound("No payroll records found for this period.");
+
+            var slips = records.Select(MapToViewModel).ToList();
+            var pdf   = _pdfService.GenerateMultiple(slips);
+
+            string filename = $"Payslips_{year}-{month:D2}.pdf";
+            return File(pdf, "application/pdf", filename);
+        }
+
         // ── Finalize Payroll ──────────────────────────────────────────────────────
         [HttpPost, ValidateAntiForgeryToken, Authorize(Roles = "HR Admin")]
         public async Task<IActionResult> Finalize(int id)
@@ -272,5 +315,37 @@ namespace PECCI_HRIS.Controllers
                     Text  = $"{e.FullName} ({e.EmployeeNo})"
                 })
                 .ToListAsync();
+
+        private PayslipViewModel MapToViewModel(PayrollRecord r) => new()
+        {
+            PayrollID              = r.PayrollID,
+            EmployeeName           = r.Employee?.DisplayName ?? string.Empty,
+            EmployeeNo             = r.Employee?.EmployeeNo ?? string.Empty,
+            Department             = r.Employee?.Department?.DepartmentName ?? string.Empty,
+            PayPeriod              = r.PayPeriod,
+            BasicSalary            = r.BasicSalary,
+            OvertimePay            = r.OvertimePay,
+            HolidayPay             = r.HolidayPay,
+            NightDifferential      = r.NightDifferential,
+            Allowances             = r.Allowances,
+            GrossPay               = r.StoredGrossPay,
+            SSSContribution        = r.SSSContribution,
+            PhilHealthContribution = r.PhilHealthContribution,
+            PagIbigContribution    = r.PagIbigContribution,
+            WithholdingTax         = r.WithholdingTax,
+            LateDeductions         = r.LateDeductions,
+            UndertimeDeductions    = r.UndertimeDeductions,
+            OtherDeductions        = r.OtherDeductions,
+            TotalDeductions        = r.StoredTotalDeductions,
+            NetPay                 = r.StoredNetPay,
+            DaysWorked             = r.DaysWorked,
+            DaysAbsent             = r.DaysAbsent,
+            TotalOvertimeHours     = r.TotalOvertimeHours,
+            TotalLateMinutes       = r.TotalLateMinutes,
+            Status                 = r.Status,
+            TaxBracket             = _taxService.GetTaxBracketLabel(
+                r.BasicSalary * 2 - r.SSSContribution * 2
+                - r.PhilHealthContribution * 2 - r.PagIbigContribution * 2)
+        };
     }
 }

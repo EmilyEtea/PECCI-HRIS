@@ -23,6 +23,8 @@ builder.Services.AddScoped<AttendanceComputationService>();
 builder.Services.AddScoped<TaxComputationService>();
 builder.Services.AddScoped<AuditService>();
 builder.Services.AddScoped<LeaveCreditService>();
+builder.Services.AddScoped<PayslipPdfService>();
+builder.Services.AddHostedService<LeaveCreditRefreshJob>();
 
 // ── Authentication ────────────────────────────────────────────────────────────
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -50,9 +52,11 @@ builder.Services.AddSession(options =>
 var app = builder.Build();
 
 // ── Middleware pipeline ───────────────────────────────────────────────────────
+// Show detailed errors in browser to help diagnose issues
+app.UseDeveloperExceptionPage();
+
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
 
@@ -71,7 +75,6 @@ app.MapControllerRoute(
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    var leaveSvc = scope.ServiceProvider.GetRequiredService<LeaveCreditService>();
 
     // Seed default admin user (password: Admin@123)
     if (db.Database.CanConnect() && !db.Users.Any(u => u.Username == "admin"))
@@ -87,11 +90,8 @@ using (var scope = app.Services.CreateScope())
         });
         db.SaveChanges();
     }
-
-    // Auto-refresh leave credits for the current year on startup
-    // (safe to call repeatedly — only creates missing records)
-    if (db.Database.CanConnect())
-        await leaveSvc.RefreshAnnualCredits();
+    // Note: Annual leave credit refresh is now handled by LeaveCreditRefreshJob (background service)
+    // It runs 5 seconds after startup and only allocates if the current year has no records yet.
 }
 
 app.Run();
