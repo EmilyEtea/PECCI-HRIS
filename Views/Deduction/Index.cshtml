@@ -20,6 +20,9 @@
         <a asp-action="Create" class="btn btn-pecci-primary">
             <i class="fas fa-plus me-1"></i> Add Deduction
         </a>
+        <a asp-controller="RecurringDeduction" asp-action="Index" class="btn btn-outline-secondary ms-1">
+            <i class="fas fa-sync-alt me-1"></i> Recurring Schedules
+        </a>
     </div>
 </div>
 
@@ -156,10 +159,10 @@
                                             <i class="fas fa-edit"></i>
                                         </a>
                                         <form asp-action="Cancel" asp-route-id="@d.DeductionID"
-                                              method="post" class="d-inline"
-                                              onsubmit="return confirm('Cancel this deduction?')">
+                                              method="post" class="d-inline">
                                             @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                                    onclick="swalDanger(this, 'This deduction will be cancelled.', 'Yes, cancel it')">
                                                 <i class="fas fa-times"></i>
                                             </button>
                                         </form>

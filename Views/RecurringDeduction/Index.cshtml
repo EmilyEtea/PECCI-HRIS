@@ -1,0 +1,221 @@
+@model IEnumerable<PECCI_HRIS.ViewModels.RecurringDeductionListViewModel>
+@{
+    ViewData["Title"] = "Recurring Deductions";
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "";
+}
+
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-sync-alt me-2"></i>Recurring Deduction Schedules</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Dashboard" asp-action="Index">Dashboard</a></li>
+                <li class="breadcrumb-item"><a asp-controller="Deduction" asp-action="Index">Deductions</a></li>
+                <li class="breadcrumb-item active">Recurring Schedules</li>
+            </ol>
+        </nav>
+    </div>
+    <a asp-action="Create" class="btn btn-pecci-primary">
+        <i class="fas fa-plus me-1"></i> New Schedule
+    </a>
+</div>
+
+<!-- Generate panel -->
+<div class="card mb-3">
+    <div class="card-header"><i class="fas fa-play-circle me-1"></i> Generate Deductions for Cutoff</div>
+    <div class="card-body">
+        <form asp-action="Generate" method="post" class="row g-2 align-items-end">
+            @Html.AntiForgeryToken()
+            <div class="col-auto">
+                <label class="form-label small mb-1">Month</label>
+                <select name="month" class="form-select form-select-sm">
+                    @for (int m = 1; m <= 12; m++)
+                    {
+                        <option value="@m" selected="@(m == DateTime.Today.Month)">
+                            @(new DateTime(2000, m, 1).ToString("MMMM"))
+                        </option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label small mb-1">Year</label>
+                <select name="year" class="form-select form-select-sm">
+                    @for (int y = DateTime.Today.Year + 1; y >= DateTime.Today.Year - 2; y--)
+                    {
+                        <option value="@y" selected="@(y == DateTime.Today.Year)">@y</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label small mb-1">Cutoff</label>
+                <select name="cutoffPeriod" class="form-select form-select-sm">
+                    <option value="1-15">1–15</option>
+                    <option value="16-30">16–30</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="button" class="btn btn-sm btn-pecci-primary"
+                        onclick="swalConfirm(this, 'This will create deduction entries for all active schedules in the selected cutoff.', 'Yes, generate')">
+                    <i class="fas fa-bolt me-1"></i> Generate
+                </button>
+            </div>
+            <div class="col text-muted small">
+                This creates deduction entries in the Deductions table for all active schedules that apply to the selected cutoff.
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label small mb-1">Status</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All</option>
+                    <option value="Active"    selected="@(ViewBag.Status == "Active")">Active</option>
+                    <option value="Paused"    selected="@(ViewBag.Status == "Paused")">Paused</option>
+                    <option value="Completed" selected="@(ViewBag.Status == "Completed")">Completed</option>
+                    <option value="Cancelled" selected="@(ViewBag.Status == "Cancelled")">Cancelled</option>
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label small mb-1">Employee</label>
+                <select name="employeeId" class="form-select form-select-sm">
+                    <option value="">All Employees</option>
+                    @foreach (var e in ViewBag.Employees)
+                    {
+                        <option value="@e.Value" selected="@(e.Value == ViewBag.EmployeeId?.ToString())">@e.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-sm btn-pecci-primary">
+                    <i class="fas fa-filter me-1"></i> Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-list me-1"></i> Schedules</span>
+        <span class="badge bg-secondary">@Model.Count() record(s)</span>
+    </div>
+    <div class="card-body p-0">
+        @if (!Model.Any())
+        {
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-sync-alt fa-2x mb-2 d-block opacity-25"></i>
+                No recurring schedules found.
+                <div class="mt-2">
+                    <a asp-action="Create" class="btn btn-sm btn-pecci-primary">Create Schedule</a>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th>Apply On</th>
+                            <th class="text-end">Per Cutoff</th>
+                            <th>Period</th>
+                            <th class="text-center">Progress</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var s in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">@s.EmployeeName</div>
+                                    <div class="text-muted small">@s.EmployeeNo</div>
+                                </td>
+                                <td><span class="badge bg-secondary">@s.DeductionType</span></td>
+                                <td class="small">@s.Description</td>
+                                <td>
+                                    @(s.CutoffPeriod == "Both" ? "Every cutoff" :
+                                      s.CutoffPeriod == "1-15" ? "1–15 only" : "16–30 only")
+                                </td>
+                                <td class="text-end fw-semibold text-danger">₱@s.AmountPerCutoff.ToString("N2")</td>
+                                <td class="small">
+                                    @s.StartDate.ToString("MM/dd/yyyy")
+                                    @if (s.EndDate.HasValue)
+                                    {
+                                        <span> – @s.EndDate.Value.ToString("MM/dd/yyyy")</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted"> – ongoing</span>
+                                    }
+                                </td>
+                                <td class="text-center small">
+                                    @if (s.TotalInstallments.HasValue)
+                                    {
+                                        <div>@s.AppliedInstallments / @s.TotalInstallments</div>
+                                        <div class="progress mt-1" style="height:4px;">
+                                            <div class="progress-bar bg-success"
+                                                 style="width:@(s.TotalInstallments > 0 ? (s.AppliedInstallments * 100 / s.TotalInstallments) : 0)%">
+                                            </div>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">@s.AppliedInstallments applied</span>
+                                    }
+                                </td>
+                                <td>
+                                    @{
+                                        var badgeClass = s.Status switch {
+                                            "Active"    => "bg-success",
+                                            "Paused"    => "bg-warning text-dark",
+                                            "Completed" => "bg-primary",
+                                            _           => "bg-danger"
+                                        };
+                                    }
+                                    <span class="badge @badgeClass">@s.Status</span>
+                                </td>
+                                <td>
+                                    @if (s.Status == "Active" || s.Status == "Paused")
+                                    {
+                                        <a asp-action="Edit" asp-route-id="@s.ScheduleID"
+                                           class="btn btn-sm btn-outline-secondary me-1">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <form asp-action="TogglePause" asp-route-id="@s.ScheduleID"
+                                              method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit"
+                                                    class="btn btn-sm @(s.Status == "Active" ? "btn-outline-warning" : "btn-outline-success") me-1"
+                                                    title="@(s.Status == "Active" ? "Pause" : "Resume")">
+                                                <i class="fas @(s.Status == "Active" ? "fa-pause" : "fa-play")"></i>
+                                            </button>
+                                        </form>
+                                        <form asp-action="Cancel" asp-route-id="@s.ScheduleID"
+                                              method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                                    onclick="swalDanger(this, 'This recurring schedule will be permanently cancelled.', 'Yes, cancel it')">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

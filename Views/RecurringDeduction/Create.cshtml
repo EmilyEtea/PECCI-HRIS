@@ -1,0 +1,135 @@
+@model PECCI_HRIS.ViewModels.RecurringDeductionViewModel
+@{
+    ViewData["Title"] = "New Recurring Schedule";
+}
+
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-sync-alt me-2"></i>New Recurring Schedule</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Dashboard" asp-action="Index">Dashboard</a></li>
+                <li class="breadcrumb-item"><a asp-action="Index">Recurring Schedules</a></li>
+                <li class="breadcrumb-item active">New</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header"><i class="fas fa-sync-alt me-1"></i> Schedule Details</div>
+            <div class="card-body">
+                <form asp-action="Create" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label asp-for="EmployeeID" class="form-label"></label>
+                            <select asp-for="EmployeeID" asp-items="Model.Employees" class="form-select">
+                                <option value="">Select Employee...</option>
+                            </select>
+                            <span asp-validation-for="EmployeeID" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="DeductionType" class="form-label"></label>
+                            <select asp-for="DeductionType" class="form-select">
+                                <option value="">Select Type...</option>
+                                <option value="SSS Loan">SSS Loan</option>
+                                <option value="Pag-IBIG Loan">Pag-IBIG Loan</option>
+                                <option value="PECCI Loan">PECCI Loan</option>
+                                <option value="Cash Advance">Cash Advance</option>
+                                <option value="Other">Other</option>
+                            </select>
+                            <span asp-validation-for="DeductionType" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="AmountPerCutoff" class="form-label"></label>
+                            <div class="input-group">
+                                <span class="input-group-text">₱</span>
+                                <input asp-for="AmountPerCutoff" type="number" step="0.01" min="0.01" class="form-control" />
+                            </div>
+                            <span asp-validation-for="AmountPerCutoff" class="text-danger small"></span>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Description" class="form-label"></label>
+                            <input asp-for="Description" class="form-control" placeholder="e.g. SSS Loan – Ref# 12345" />
+                            <span asp-validation-for="Description" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="CutoffPeriod" class="form-label"></label>
+                            <select asp-for="CutoffPeriod" class="form-select">
+                                <option value="Both">Every cutoff (1–15 and 16–30)</option>
+                                <option value="1-15">1–15 only</option>
+                                <option value="16-30">16–30 only</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="StartDate" class="form-label"></label>
+                            <input asp-for="StartDate" type="date" class="form-control" />
+                            <span asp-validation-for="StartDate" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="EndDate" class="form-label"></label>
+                            <input asp-for="EndDate" type="date" class="form-control" />
+                            <span asp-validation-for="EndDate" class="text-danger small"></span>
+                            <div class="form-text">Leave blank for no end date.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="TotalInstallments" class="form-label"></label>
+                            <input asp-for="TotalInstallments" type="number" min="1" class="form-control" placeholder="e.g. 24" />
+                            <span asp-validation-for="TotalInstallments" class="text-danger small"></span>
+                            <div class="form-text">Leave blank for unlimited.</div>
+                        </div>
+                        <div class="col-md-8 d-flex align-items-end">
+                            <div id="totalPreview" class="text-muted small"></div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-pecci-primary">
+                            <i class="fas fa-save me-1"></i> Save Schedule
+                        </button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header"><i class="fas fa-info-circle me-1"></i> How it works</div>
+            <div class="card-body" style="font-size:0.82rem;">
+                <ul class="mb-0 ps-3">
+                    <li>Define the schedule once — the system generates deduction entries each cutoff automatically.</li>
+                    <li>Click <strong>Generate</strong> on the Recurring Schedules page before computing payroll for each cutoff.</li>
+                    <li>Set <strong>Total Installments</strong> for fixed-term loans (e.g. 24 months). Leave blank for open-ended deductions.</li>
+                    <li>You can <strong>pause</strong> a schedule temporarily without cancelling it.</li>
+                    <li>Once all installments are applied, the schedule auto-completes.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+    <script>
+        function updatePreview() {
+            const amount = parseFloat(document.getElementById('AmountPerCutoff').value) || 0;
+            const installments = parseInt(document.getElementById('TotalInstallments').value) || 0;
+            const preview = document.getElementById('totalPreview');
+            if (amount > 0 && installments > 0) {
+                const total = (amount * installments).toLocaleString('en-PH', { minimumFractionDigits: 2 });
+                preview.textContent = `Total loan amount: ₱${total} over ${installments} installment(s)`;
+            } else {
+                preview.textContent = '';
+            }
+        }
+        document.getElementById('AmountPerCutoff').addEventListener('input', updatePreview);
+        document.getElementById('TotalInstallments').addEventListener('input', updatePreview);
+    </script>
+}

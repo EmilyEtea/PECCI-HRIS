@@ -129,7 +129,7 @@
                                         @if (emp.Status == "Active")
                                         {
                                             <button class="btn btn-sm btn-outline-danger" title="Deactivate"
-                                                    onclick="confirmDeactivate(@emp.EmployeeID, '@emp.FullName')">
+                                                    onclick="confirmDeactivate(@emp.EmployeeID, '@emp.FullName.Replace("'", "\\'")')">
                                                 <i class="fas fa-user-slash"></i>
                                             </button>
                                         }
@@ -153,33 +153,12 @@
     </div>
 </div>
 
-<!-- Deactivate Modal -->
-<div class="modal fade" id="deactivateModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header" style="background:var(--pecci-danger);color:white;">
-                <h5 class="modal-title"><i class="fas fa-user-slash me-2"></i>Deactivate Employee</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <form asp-action="Deactivate" method="post">
-                @Html.AntiForgeryToken()
-                <div class="modal-body">
-                    <p>Are you sure you want to deactivate <strong id="empName"></strong>?</p>
-                    <input type="hidden" name="id" id="deactivateId" />
-                    <div class="mb-3">
-                        <label class="form-label">Reason <span class="text-danger">*</span></label>
-                        <input type="text" name="reason" class="form-control" required
-                               placeholder="e.g. Resigned, Terminated, Retired" />
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-pecci-danger">Deactivate</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+<!-- Hidden deactivate form (submitted by SweetAlert2) -->
+<form id="deactivateForm" asp-action="Deactivate" method="post" style="display:none;">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="id" id="deactivateId" />
+    <input type="hidden" name="reason" id="deactivateReason" />
+</form>
 
 <!-- Credits -->
 <div class="mt-3 text-center text-muted no-print" style="font-size:0.72rem;">
@@ -191,9 +170,32 @@
 @section Scripts {
 <script>
     function confirmDeactivate(id, name) {
-        document.getElementById('deactivateId').value = id;
-        document.getElementById('empName').textContent = name;
-        new bootstrap.Modal(document.getElementById('deactivateModal')).show();
+        Swal.fire({
+            title: 'Deactivate Employee?',
+            html: `<p>You are about to deactivate <strong>${name}</strong>.</p>
+                   <input id="swal-reason" class="swal2-input" placeholder="Reason (e.g. Resigned, Terminated)" required>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Deactivate',
+            cancelButtonText: 'Cancel',
+            preConfirm: () => {
+                const reason = document.getElementById('swal-reason').value.trim();
+                if (!reason) {
+                    Swal.showValidationMessage('Please enter a reason.');
+                    return false;
+                }
+                return reason;
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const form = document.getElementById('deactivateForm');
+                document.getElementById('deactivateId').value = id;
+                document.getElementById('deactivateReason').value = result.value;
+                form.submit();
+            }
+        });
     }
 </script>
 }

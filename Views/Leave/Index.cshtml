@@ -137,8 +137,8 @@
                                     {
                                         <form asp-action="Cancel" asp-route-id="@leave.LeaveApplicationID" method="post" class="d-inline">
                                             @Html.AntiForgeryToken()
-                                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Cancel"
-                                                    onclick="return confirm('Cancel this leave application?')">
+                                            <button type="button" class="btn btn-sm btn-outline-danger" title="Cancel"
+                                                    onclick="swalDanger(this, 'Your leave application will be cancelled.', 'Yes, cancel it')">
                                                 <i class="fas fa-times"></i>
                                             </button>
                                         </form>

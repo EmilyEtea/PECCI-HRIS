@@ -96,14 +96,14 @@
                         </div>
 
                         <div class="d-flex gap-2">
-                            <button type="submit" name="Action" value="Approve"
+                            <button type="button" name="Action" value="Approve"
                                     class="btn btn-pecci-primary"
-                                    onclick="return confirm('Approve this leave application?')">
+                                    onclick="swalConfirm(this, 'Approve this leave application?', 'Yes, approve', 'question')">
                                 <i class="fas fa-check me-1"></i> Approve
                             </button>
-                            <button type="submit" name="Action" value="Reject"
+                            <button type="button" name="Action" value="Reject"
                                     class="btn btn-pecci-orange"
-                                    onclick="return confirm('Reject this leave application?')">
+                                    onclick="swalDanger(this, 'Reject this leave application?', 'Yes, reject')">
                                 <i class="fas fa-times me-1"></i> Reject
                             </button>
                             <a asp-action="Index" class="btn btn-outline-secondary ms-auto">
@@ -168,3 +168,39 @@
     Developed by <strong>UST Interns</strong>:
     Arkin Reinier Aguilar &bull; Maxenne De Guzman &bull; Bernice Elyssa Soriano &bull; Emily Etea
 </div>
+
+@section Scripts {
+<script>
+    // Override swalConfirm for named submit buttons (Approve/Reject)
+    document.querySelectorAll('button[name="Action"]').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const action = this.value;
+            const isApprove = action === 'Approve';
+            Swal.fire({
+                title: isApprove ? 'Approve Leave?' : 'Reject Leave?',
+                text: isApprove
+                    ? 'This leave application will be approved.'
+                    : 'This leave application will be rejected.',
+                icon: isApprove ? 'question' : 'warning',
+                showCancelButton: true,
+                confirmButtonColor: isApprove ? '#2d6a4f' : '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: isApprove ? 'Yes, approve' : 'Yes, reject',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Create a hidden input and submit the form
+                    const form = this.closest('form');
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = 'Action';
+                    input.value = action;
+                    form.appendChild(input);
+                    form.submit();
+                }
+            });
+        });
+    });
+</script>
+}

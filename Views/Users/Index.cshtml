@@ -87,10 +87,10 @@
                                     </a>
                                     <form asp-action="ToggleStatus" asp-route-id="@user.UserID" method="post" class="d-inline">
                                         @Html.AntiForgeryToken()
-                                        <button type="submit"
+                                        <button type="button"
                                                 class="btn btn-sm @(user.IsActive ? "btn-outline-danger" : "btn-outline-success")"
                                                 title="@(user.IsActive ? "Deactivate" : "Activate")"
-                                                onclick="return confirm('Toggle status for @user.Username?')">
+                                                onclick="swalConfirm(this, 'Toggle status for @user.Username?', '@(user.IsActive ? "Deactivate" : "Activate")')">
                                             <i class="fas @(user.IsActive ? "fa-user-slash" : "fa-user-check")"></i>
                                         </button>
                                     </form>

@@ -111,8 +111,8 @@
                                 {
                                     <form asp-action="Finalize" asp-route-id="@rec.PayrollID" method="post" class="d-inline">
                                         @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-sm btn-pecci-primary"
-                                                onclick="return confirm('Finalize payroll for @rec.Employee?.FullName?')"
+                                        <button type="button" class="btn btn-sm btn-pecci-primary"
+                                                onclick="swalConfirm(this, 'Finalize payroll for @rec.Employee?.FullName? This cannot be undone.', 'Yes, finalize')"
                                                 title="Finalize">
                                             <i class="fas fa-check me-1"></i> Finalize
                                         </button>

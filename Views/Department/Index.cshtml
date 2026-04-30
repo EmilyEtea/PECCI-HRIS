@@ -85,10 +85,10 @@
                                     {
                                         <form asp-action="ToggleStatus" asp-route-id="@dept.DepartmentID" method="post" class="d-inline">
                                             @Html.AntiForgeryToken()
-                                            <button type="submit"
+                                            <button type="button"
                                                     class="btn btn-sm @(dept.IsActive ? "btn-outline-danger" : "btn-outline-success")"
                                                     title="@(dept.IsActive ? "Deactivate" : "Activate")"
-                                                    onclick="return confirm('Toggle status for @dept.DepartmentName?')">
+                                                    onclick="swalConfirm(this, 'Toggle status for @dept.DepartmentName?', '@(dept.IsActive ? "Deactivate" : "Activate")')">
                                                 <i class="fas @(dept.IsActive ? "fa-toggle-off" : "fa-toggle-on")"></i>
                                             </button>
                                         </form>

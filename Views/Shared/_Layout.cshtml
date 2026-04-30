@@ -20,6 +20,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <link rel="stylesheet" href="~/css/pecci-theme.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" />
     @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
@@ -88,6 +89,9 @@
             <div class="nav-section-label">Payroll</div>
             <a asp-controller="Deduction" asp-action="Index" class="@NavClass("Deduction")">
                 <i class="fas fa-hand-holding-usd"></i> Deductions
+            </a>
+            <a asp-controller="RecurringDeduction" asp-action="Index" class="@NavClass("RecurringDeduction")">
+                <i class="fas fa-sync-alt"></i> Recurring Schedules
             </a>
             <a asp-controller="Payroll" asp-action="Index" class="@NavClass("Payroll","Index")">
                 <i class="fas fa-money-bill-wave"></i> Payroll
@@ -189,45 +193,86 @@
 
 <!-- ── Main Content ──────────────────────────────────────────────────────────── -->
 <main class="main-content">
-    <!-- Toast Notifications -->
+    <!-- TempData placeholders — shown via SweetAlert2 below -->
     @if (TempData["Success"] != null)
     {
-        <div class="alert alert-success alert-dismissible alert-pecci fade show mb-3" role="alert">
-            <i class="fas fa-check-circle me-2"></i> @TempData["Success"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
+        <span id="swal-success" data-msg="@TempData["Success"]" hidden></span>
     }
     @if (TempData["Error"] != null)
     {
-        <div class="alert alert-danger alert-dismissible alert-pecci fade show mb-3" role="alert">
-            <i class="fas fa-exclamation-circle me-2"></i> @TempData["Error"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
+        <span id="swal-error" data-msg="@TempData["Error"]" hidden></span>
     }
     @if (TempData["Warning"] != null)
     {
-        <div class="alert alert-warning alert-dismissible alert-pecci fade show mb-3" role="alert">
-            <i class="fas fa-exclamation-triangle me-2"></i> @TempData["Warning"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
+        <span id="swal-warning" data-msg="@TempData["Warning"]" hidden></span>
     }
 
     @RenderBody()
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
 <script>
     // Sidebar toggle for mobile
     document.getElementById('sidebarToggle')?.addEventListener('click', () => {
         document.getElementById('sidebar').classList.toggle('show');
     });
 
-    // Auto-dismiss alerts after 5 seconds
-    setTimeout(() => {
-        document.querySelectorAll('.alert.fade.show').forEach(el => {
-            new bootstrap.Alert(el).close();
+    // ── SweetAlert2 toast for TempData messages ───────────────────────────────
+    const Toast = Swal.mixin({
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 4000,
+        timerProgressBar: true,
+        didOpen: (toast) => {
+            toast.addEventListener('mouseenter', Swal.stopTimer);
+            toast.addEventListener('mouseleave', Swal.resumeTimer);
+        }
+    });
+
+    const successEl = document.getElementById('swal-success');
+    const errorEl   = document.getElementById('swal-error');
+    const warnEl    = document.getElementById('swal-warning');
+
+    if (successEl) Toast.fire({ icon: 'success', title: successEl.dataset.msg });
+    if (errorEl)   Toast.fire({ icon: 'error',   title: errorEl.dataset.msg,   timer: 6000 });
+    if (warnEl)    Toast.fire({ icon: 'warning',  title: warnEl.dataset.msg });
+
+    // ── Global confirm helper (replaces all confirm() calls) ──────────────────
+    // Usage: <button onclick="swalConfirm(this, 'Are you sure?', 'Yes, do it')">
+    function swalConfirm(btn, text, confirmText, icon) {
+        const form = btn.closest('form');
+        Swal.fire({
+            title: 'Are you sure?',
+            text: text || '',
+            icon: icon || 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#2d6a4f',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: confirmText || 'Yes',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed && form) form.submit();
         });
-    }, 5000);
+    }
+
+    // ── Danger confirm (red confirm button) ───────────────────────────────────
+    function swalDanger(btn, text, confirmText) {
+        const form = btn.closest('form');
+        Swal.fire({
+            title: 'Are you sure?',
+            text: text || '',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: confirmText || 'Yes, proceed',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed && form) form.submit();
+        });
+    }
 </script>
 @await RenderSectionAsync("Scripts", required: false)
 </body>

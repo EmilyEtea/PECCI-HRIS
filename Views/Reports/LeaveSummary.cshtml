@@ -20,6 +20,12 @@
     <button onclick="window.print()" class="btn btn-outline-secondary no-print">
         <i class="fas fa-print me-1"></i> Print Report
     </button>
+    <a asp-action="ExportLeaveSummary"
+       asp-route-year="@ViewBag.Year"
+       asp-route-departmentId="@ViewBag.DepartmentId"
+       class="btn btn-success no-print">
+        <i class="fas fa-file-excel me-1"></i> Export to Excel
+    </a>
 </div>
 
 <!-- Filters -->
