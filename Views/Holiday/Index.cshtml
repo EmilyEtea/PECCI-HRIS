@@ -1,0 +1,295 @@
+@model PECCI_HRIS.ViewModels.HolidayIndexViewModel
+@{
+    ViewData["Title"] = "Holiday Calendar";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var isHRAdmin = User.IsInRole("HR Admin");
+    var isHR      = isHRAdmin || User.IsInRole("HR Staff");
+}
+
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-calendar-alt me-2"></i>Holiday Calendar</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Dashboard" asp-action="Index">Dashboard</a></li>
+                <li class="breadcrumb-item active">Holiday Calendar</li>
+            </ol>
+        </nav>
+    </div>
+    @if (isHR)
+    {
+        <div class="d-flex gap-2">
+            <a asp-action="Create" class="btn btn-pecci-primary">
+                <i class="fas fa-plus me-1"></i> Add Holiday
+            </a>
+        </div>
+    }
+</div>
+
+<!-- ── Filters ──────────────────────────────────────────────────────────────── -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label fw-semibold mb-1 small">Year</label>
+                <select name="year" class="form-select form-select-sm" onchange="this.form.submit()">
+                    @foreach (var y in Model.AvailableYears)
+                    {
+                        if (y == Model.SelectedYear)
+                        {
+                            <option value="@y" selected>@y</option>
+                        }
+                        else
+                        {
+                            <option value="@y">@y</option>
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <label class="form-label fw-semibold mb-1 small">Type</label>
+                <select name="type" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Types</option>
+                    @if (Model.SelectedType == "Regular")
+                    {
+                        <option value="Regular" selected>Regular Holiday</option>
+                        <option value="Special">Special Non-Working</option>
+                    }
+                    else if (Model.SelectedType == "Special")
+                    {
+                        <option value="Regular">Regular Holiday</option>
+                        <option value="Special" selected>Special Non-Working</option>
+                    }
+                    else
+                    {
+                        <option value="Regular">Regular Holiday</option>
+                        <option value="Special">Special Non-Working</option>
+                    }
+                </select>
+            </div>
+            <div class="col-auto">
+                <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-times me-1"></i> Clear
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ── Summary Cards ────────────────────────────────────────────────────────── -->
+<div class="row g-3 mb-3">
+    <div class="col-sm-4">
+        <div class="card text-center h-100" style="border-left:4px solid var(--pecci-green);">
+            <div class="card-body py-3">
+                <div style="font-size:2rem;font-weight:700;color:var(--pecci-green);">@Model.Holidays.Count</div>
+                <div class="text-muted small">Total Holidays (@Model.SelectedYear)</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="card text-center h-100" style="border-left:4px solid #dc3545;">
+            <div class="card-body py-3">
+                <div style="font-size:2rem;font-weight:700;color:#dc3545;">@Model.RegularCount</div>
+                <div class="text-muted small">Regular Holidays</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+        <div class="card text-center h-100" style="border-left:4px solid #fd7e14;">
+            <div class="card-body py-3">
+                <div style="font-size:2rem;font-weight:700;color:#fd7e14;">@Model.SpecialCount</div>
+                <div class="text-muted small">Special Non-Working</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Auto-Populate Banner ──────────────────────────────────────────────────── -->
+@if (isHRAdmin && !Model.Holidays.Any())
+{
+    <div class="alert alert-info d-flex align-items-center gap-3 mb-3" role="alert">
+        <i class="fas fa-magic fa-lg"></i>
+        <div class="flex-grow-1">
+            <strong>No holidays found for @Model.SelectedYear.</strong>
+            Auto-populate the official Philippine public holidays based on the Proclamation list.
+        </div>
+        <form asp-action="AutoPopulate" method="post" class="d-inline">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="year" value="@Model.SelectedYear" />
+            <button type="button" class="btn btn-info btn-sm text-white"
+                    onclick="swalConfirm(this,
+                        'This will add all official Philippine public holidays for @Model.SelectedYear based on the Proclamation list.',
+                        'Yes, Auto-Populate', 'question')">
+                <i class="fas fa-magic me-1"></i> Auto-Populate @Model.SelectedYear
+            </button>
+        </form>
+    </div>
+}
+@if (isHRAdmin && Model.Holidays.Any())
+{
+    <div class="d-flex justify-content-end mb-2">
+        <form asp-action="AutoPopulate" method="post" class="d-inline">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="year" value="@Model.SelectedYear" />
+            <button type="button" class="btn btn-outline-info btn-sm"
+                    onclick="swalConfirm(this,
+                        'Missing holidays will be added for @Model.SelectedYear. Existing entries will not be duplicated.',
+                        'Yes, Fill Missing', 'question')">
+                <i class="fas fa-magic me-1"></i> Fill Missing Holidays
+            </button>
+        </form>
+    </div>
+}
+
+<!-- ── Holiday Table ─────────────────────────────────────────────────────────── -->
+<div class="card">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <span><i class="fas fa-list me-1"></i> @Model.SelectedYear Holiday List</span>
+        <span class="badge ms-2" style="background:var(--pecci-green);">@Model.Holidays.Count holidays</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-pecci mb-0">
+                <thead>
+                    <tr>
+                        <th style="width:130px;">Date</th>
+                        <th>Holiday Name</th>
+                        <th style="width:200px;">Type</th>
+                        <th class="text-center" style="width:90px;">Recurring</th>
+                        <th>Remarks</th>
+                        @if (isHR)
+                        {
+                            <th style="width:110px;">Actions</th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var h in Model.Holidays)
+                    {
+                        bool isPast = h.HolidayDate < DateTime.Today;
+                        bool isToday = h.HolidayDate.Date == DateTime.Today;
+                        <tr class="@(isToday ? "table-warning" : isPast ? "opacity-75" : "")">
+                            <td>
+                                <div class="fw-semibold">@h.HolidayDate.ToString("MMM d")</div>
+                                <div class="text-muted small">@h.HolidayDate.ToString("dddd")</div>
+                            </td>
+                            <td>
+                                <div class="fw-semibold">@h.HolidayName</div>
+                                @if (isToday)
+                                {
+                                    <span class="badge bg-warning text-dark ms-1" style="font-size:0.65rem;">Today</span>
+                                }
+                            </td>
+                            <td>
+                                @if (h.IsRegular)
+                                {
+                                    <span class="badge" style="background:#dc3545;">
+                                        <i class="fas fa-star me-1"></i>Regular Holiday
+                                    </span>
+                                    <div class="text-muted" style="font-size:0.7rem;">200% pay if worked · 100% if not</div>
+                                }
+                                else
+                                {
+                                    <span class="badge" style="background:#fd7e14;">
+                                        <i class="fas fa-calendar-day me-1"></i>Special Non-Working
+                                    </span>
+                                    <div class="text-muted" style="font-size:0.7rem;">130% pay if worked · No pay if not</div>
+                                }
+                            </td>
+                            <td class="text-center">
+                                @if (h.IsRecurring)
+                                {
+                                    <i class="fas fa-sync-alt text-success" title="Recurs annually"></i>
+                                }
+                                else
+                                {
+                                    <i class="fas fa-minus text-muted" title="One-time"></i>
+                                }
+                            </td>
+                            <td class="text-muted small">@(h.Remarks ?? "—")</td>
+                            @if (isHR)
+                            {
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        <a asp-action="Edit" asp-route-id="@h.HolidayID"
+                                           class="btn btn-sm btn-outline-warning" title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        @if (isHRAdmin)
+                                        {
+                                            <form asp-action="Delete" asp-route-id="@h.HolidayID" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <button type="button"
+                                                        class="btn btn-sm btn-outline-danger"
+                                                        title="Delete"
+                                                        onclick="swalDanger(this, 'Delete holiday: @h.HolidayName?', 'Yes, Delete')">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        }
+                                    </div>
+                                </td>
+                            }
+                        </tr>
+                    }
+                    @if (!Model.Holidays.Any())
+                    {
+                        <tr>
+                            <td colspan="@(isHR ? 6 : 5)" class="text-center text-muted py-5">
+                                <i class="fas fa-calendar-alt fa-2x mb-2 d-block opacity-25"></i>
+                                No holidays found for @Model.SelectedYear.
+                                @if (isHRAdmin)
+                                {
+                                    <div class="mt-2">
+                                        Use the <strong>Auto-Populate</strong> button above to add official Philippine holidays.
+                                    </div>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ── Pay Rate Reference ────────────────────────────────────────────────────── -->
+<div class="card mt-3">
+    <div class="card-header">
+        <i class="fas fa-info-circle me-1"></i> Holiday Pay Reference (DOLE / Labor Code)
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="p-3 rounded" style="background:#fff5f5;border:1px solid #f5c6cb;">
+                    <h6 class="fw-bold" style="color:#dc3545;"><i class="fas fa-star me-1"></i>Regular Holiday (Art. 94)</h6>
+                    <ul class="mb-0 small">
+                        <li><strong>Did not work:</strong> 100% of daily rate (paid holiday)</li>
+                        <li><strong>Worked:</strong> 200% of daily rate</li>
+                        <li><strong>Worked + overtime:</strong> 200% + 30% of hourly rate per OT hour</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="p-3 rounded" style="background:#fff8f0;border:1px solid #ffc107;">
+                    <h6 class="fw-bold" style="color:#fd7e14;"><i class="fas fa-calendar-day me-1"></i>Special Non-Working Holiday</h6>
+                    <ul class="mb-0 small">
+                        <li><strong>Did not work:</strong> No pay (no-work, no-pay rule)</li>
+                        <li><strong>Worked:</strong> 130% of daily rate</li>
+                        <li><strong>Worked + overtime:</strong> 130% + 30% of hourly rate per OT hour</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="mt-2 text-muted small">
+            <i class="fas fa-exclamation-triangle me-1 text-warning"></i>
+            Eid'l Fitr and Eid'l Adha dates are approximate. Always confirm via the official Presidential Proclamation before finalizing payroll.
+        </div>
+    </div>
+</div>
+
+<div class="mt-3 text-center text-muted" style="font-size:0.72rem;">
+    <i class="fas fa-code me-1"></i>
+    Developed by <strong>UST Interns</strong>:
+    Arkin Reinier Aguilar &bull; Maxenne De Guzman &bull; Bernice Elyssa Soriano &bull; Emily Etea
+</div>

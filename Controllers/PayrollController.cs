@@ -17,18 +17,21 @@ namespace PECCI_HRIS.Controllers
         private readonly AttendanceComputationService _attendanceService;
         private readonly AuditService _auditService;
         private readonly PayslipPdfService _pdfService;
+        private readonly HolidayService _holidayService;
 
         public PayrollController(ApplicationDbContext context,
             TaxComputationService taxService,
             AttendanceComputationService attendanceService,
             AuditService auditService,
-            PayslipPdfService pdfService)
+            PayslipPdfService pdfService,
+            HolidayService holidayService)
         {
             _context = context;
             _taxService = taxService;
             _attendanceService = attendanceService;
             _auditService = auditService;
             _pdfService = pdfService;
+            _holidayService = holidayService;
         }
 
         // ── Payroll List ──────────────────────────────────────────────────────────
@@ -133,6 +136,10 @@ namespace PECCI_HRIS.Controllers
                 decimal undertimeDeduction = _attendanceService.ComputeUndertimeDeduction(attendance.Sum(a => a.UndertimeMinutes ?? 0), basicSalary * 2);
                 decimal overtimePay        = _attendanceService.ComputeOvertimePay(totalOvertimeMinutes, basicSalary * 2);
 
+                // Holiday pay — computed from the holiday calendar
+                var (holidayPay, _) = await _holidayService.ComputePeriodHolidayPayAsync(
+                    emp.EmployeeID, periodStart, periodEnd, basicSalary * 2);
+
                 // Absent deduction
                 decimal dailyRate = (basicSalary * 2) / 22m;
                 decimal absentDeduction = dailyRate * daysAbsent;
@@ -155,6 +162,7 @@ namespace PECCI_HRIS.Controllers
                     PeriodEnd              = periodEnd,
                     BasicSalary            = basicSalary,
                     OvertimePay            = overtimePay,
+                    HolidayPay             = holidayPay,
                     SSSContribution        = sss,
                     PhilHealthContribution = philHealth,
                     PagIbigContribution    = pagIbig,

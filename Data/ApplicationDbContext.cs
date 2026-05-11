@@ -25,6 +25,7 @@ namespace PECCI_HRIS.Data
         public DbSet<RecurringDeductionSchedule> RecurringDeductionSchedules { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<SystemSetting> SystemSettings { get; set; }
+        public DbSet<Holiday> Holidays { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -179,6 +180,10 @@ namespace PECCI_HRIS.Data
             modelBuilder.Entity<RecurringDeductionSchedule>()
                 .Property(s => s.AmountPerCutoff).HasColumnType("decimal(18,2)");
 
+            // Holiday
+            modelBuilder.Entity<Holiday>()
+                .HasIndex(h => new { h.HolidayDate, h.HolidayType }).IsUnique();
+
             // Seed data
             SeedData(modelBuilder);
         }
@@ -248,6 +253,33 @@ namespace PECCI_HRIS.Data
                 new LeaveType { LeaveTypeID = 3, LeaveTypeName = "Emergency Leave", LeaveCode = "EL", DefaultDaysPerYear = 3, IsPaid = true, RequiresApproval = true, IsActive = true, CreatedAt = new DateTime(2026, 1, 1) },
                 new LeaveType { LeaveTypeID = 4, LeaveTypeName = "Maternity Leave", LeaveCode = "ML", DefaultDaysPerYear = 105, IsPaid = true, RequiresApproval = true, IsActive = true, CreatedAt = new DateTime(2026, 1, 1) },
                 new LeaveType { LeaveTypeID = 5, LeaveTypeName = "Paternity Leave", LeaveCode = "PL", DefaultDaysPerYear = 7, IsPaid = true, RequiresApproval = true, IsActive = true, CreatedAt = new DateTime(2026, 1, 1) }
+            );
+
+            // ── Philippine Public Holidays 2026 (Proclamation No. 727, s. 2025) ──
+            // Regular holidays: 200% pay if worked; Special non-working: 130% pay if worked.
+            modelBuilder.Entity<Holiday>().HasData(
+                // ── Regular Holidays ──────────────────────────────────────────────
+                new Holiday { HolidayID =  1, HolidayDate = new DateTime(2026,  1,  1), HolidayName = "New Year's Day",                         HolidayType = "Regular", Year = 2026, IsRecurring = true,  CreatedAt = new DateTime(2026, 1, 1) },
+                new Holiday { HolidayID =  2, HolidayDate = new DateTime(2026,  4,  2), HolidayName = "Maundy Thursday",                        HolidayType = "Regular", Year = 2026, IsRecurring = false, CreatedAt = new DateTime(2026, 1, 1) },
+                new Holiday { HolidayID =  3, HolidayDate = new DateTime(2026,  4,  3), HolidayName = "Good Friday",                            HolidayType = "Regular", Year = 2026, IsRecurring = false, CreatedAt = new DateTime(2026, 1, 1) },
+                new Holiday { HolidayID =  4, HolidayDate = new DateTime(2026,  4,  9), HolidayName = "Araw ng Kagitingan (Day of Valor)",       HolidayType = "Regular", Year = 2026, IsRecurring = true,  CreatedAt = new DateTime(2026, 1, 1) },
+                new Holiday { HolidayID =  5, HolidayDate = new DateTime(2026,  5,  1), HolidayName = "Labor Day",                              HolidayType = "Regular", Year = 2026, IsRecurring = true,  CreatedAt = new DateTime(2026, 1, 1) },
+                new Holiday { HolidayID =  6, HolidayDate = new DateTime(2026,  6, 12), HolidayName = "Independence Day",                       HolidayType = "Regular", Year = 2026, IsRecurring = true,  CreatedAt = new DateTime(2026, 1, 1) },
+                new Holiday { HolidayID =  7, HolidayDate = new DateTime(2026,  8, 31), HolidayName = "National Heroes Day",                    HolidayType = "Regular", Year = 2026, IsRecurring = false, Remarks = "Last Monday of August", CreatedAt = new DateTime(2026, 1, 1) },
+                new Holiday { HolidayID =  8, HolidayDate = new DateTime(2026, 11, 30), HolidayName = "Bonifacio Day",                          HolidayType = "Regular", Year = 2026, IsRecurring = true,  CreatedAt = new DateTime(2026, 1, 1) },
+                new Holiday { HolidayID =  9, HolidayDate = new DateTime(2026, 12, 25), HolidayName = "Christmas Day",                          HolidayType = "Regular", Year = 2026, IsRecurring = true,  CreatedAt = new DateTime(2026, 1, 1) },
+                new Holiday { HolidayID = 10, HolidayDate = new DateTime(2026, 12, 30), HolidayName = "Rizal Day",                              HolidayType = "Regular", Year = 2026, IsRecurring = true,  CreatedAt = new DateTime(2026, 1, 1) },
+
+                // ── Special Non-Working Holidays ──────────────────────────────────
+                new Holiday { HolidayID = 11, HolidayDate = new DateTime(2026,  1, 28), HolidayName = "Chinese New Year",                       HolidayType = "Special", Year = 2026, IsRecurring = false, CreatedAt = new DateTime(2026, 1, 1) },
+                new Holiday { HolidayID = 12, HolidayDate = new DateTime(2026,  2, 25), HolidayName = "EDSA People Power Revolution Anniversary",HolidayType = "Special", Year = 2026, IsRecurring = true,  CreatedAt = new DateTime(2026, 1, 1) },
+                new Holiday { HolidayID = 13, HolidayDate = new DateTime(2026,  4,  4), HolidayName = "Black Saturday",                         HolidayType = "Special", Year = 2026, IsRecurring = false, CreatedAt = new DateTime(2026, 1, 1) },
+                new Holiday { HolidayID = 14, HolidayDate = new DateTime(2026,  8, 21), HolidayName = "Ninoy Aquino Day",                        HolidayType = "Special", Year = 2026, IsRecurring = true,  CreatedAt = new DateTime(2026, 1, 1) },
+                new Holiday { HolidayID = 15, HolidayDate = new DateTime(2026, 11,  1), HolidayName = "All Saints' Day",                         HolidayType = "Special", Year = 2026, IsRecurring = true,  CreatedAt = new DateTime(2026, 1, 1) },
+                new Holiday { HolidayID = 16, HolidayDate = new DateTime(2026, 11,  2), HolidayName = "All Souls' Day",                          HolidayType = "Special", Year = 2026, IsRecurring = false, CreatedAt = new DateTime(2026, 1, 1) },
+                new Holiday { HolidayID = 17, HolidayDate = new DateTime(2026, 12,  8), HolidayName = "Feast of the Immaculate Conception",      HolidayType = "Special", Year = 2026, IsRecurring = true,  CreatedAt = new DateTime(2026, 1, 1) },
+                new Holiday { HolidayID = 18, HolidayDate = new DateTime(2026, 12, 24), HolidayName = "Christmas Eve",                          HolidayType = "Special", Year = 2026, IsRecurring = false, CreatedAt = new DateTime(2026, 1, 1) },
+                new Holiday { HolidayID = 19, HolidayDate = new DateTime(2026, 12, 31), HolidayName = "New Year's Eve",                         HolidayType = "Special", Year = 2026, IsRecurring = false, CreatedAt = new DateTime(2026, 1, 1) }
             );
         }
     }

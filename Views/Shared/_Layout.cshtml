@@ -87,6 +87,9 @@
         @if (role == "HR Admin" || role == "HR Staff")
         {
             <div class="nav-section-label">Payroll</div>
+            <a asp-controller="Holiday" asp-action="Index" class="@NavClass("Holiday")">
+                <i class="fas fa-calendar-alt"></i> Holiday Calendar
+            </a>
             <a asp-controller="Deduction" asp-action="Index" class="@NavClass("Deduction")">
                 <i class="fas fa-hand-holding-usd"></i> Deductions
             </a>

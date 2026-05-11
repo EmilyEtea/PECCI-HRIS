@@ -26,6 +26,7 @@ builder.Services.AddScoped<LeaveCreditService>();
 builder.Services.AddScoped<PayslipPdfService>();
 builder.Services.AddScoped<ExcelExportService>();
 builder.Services.AddScoped<RecurringDeductionService>();
+builder.Services.AddScoped<HolidayService>();
 builder.Services.AddHostedService<LeaveCreditRefreshJob>();
 
 // ── Authentication ────────────────────────────────────────────────────────────
