@@ -923,7 +923,7 @@ Returns computed late threshold for live preview in the Settings UI.
 ### Not yet implemented
 3. **Email Notifications** — Leave approval/rejection notifications via email are not in this version.
 4. **Biometric Device Integration** — Time In/Out is web-based. The Scanner Terminal supports barcode/RFID via keyboard-wedge scanners. Native biometric device SDK integration is out of scope.
-5. **Holiday Calendar** — Regular and special Philippine holidays must be manually marked in attendance records. An automated holiday calendar (based on Proclamation list) is planned.
+5. **Holiday Calendar** — Regular and special Philippine holidays must be manually marked in attendance records. An automated holiday calendar (based on Proclamation list) is planned. [Implementation done- 5/11]
 6. **Night Differential Auto-Computation** — Night differential rate is defined in settings but not automatically applied during payroll. Manual entry via `OtherEarnings` is required for now.
 7. **Recurring Deductions** — Each deduction entry covers one cutoff period. Recurring loan deductions (e.g., monthly SSS loan amortization) must be re-entered each cutoff. A recurring deduction schedule feature is planned. [Implementation done- 04/30]
 
