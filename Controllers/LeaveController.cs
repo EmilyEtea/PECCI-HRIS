@@ -14,13 +14,15 @@ namespace PECCI_HRIS.Controllers
         private readonly ApplicationDbContext _context;
         private readonly AuditService _auditService;
         private readonly LeaveCreditService _leaveCreditService;
+        private readonly EmailService _emailService;
 
         public LeaveController(ApplicationDbContext context, AuditService auditService,
-            LeaveCreditService leaveCreditService)
+            LeaveCreditService leaveCreditService, EmailService emailService)
         {
             _context = context;
             _auditService = auditService;
             _leaveCreditService = leaveCreditService;
+            _emailService = emailService;
         }
 
         // ── Leave Applications List ───────────────────────────────────────────────
@@ -145,6 +147,43 @@ namespace PECCI_HRIS.Controllers
                 $"Applied for {days} day(s) leave from {vm.StartDate:MM/dd/yyyy} to {vm.EndDate:MM/dd/yyyy}",
                 GetClientIP());
 
+            // ── Email: confirm submission to the employee ─────────────────────
+            var employee = await _context.Employees
+                .Include(e => e.UserAccount)
+                .FirstOrDefaultAsync(e => e.EmployeeID == empId);
+
+            var leaveTypeName = await _context.LeaveTypes
+                .Where(lt => lt.LeaveTypeID == vm.LeaveTypeID)
+                .Select(lt => lt.LeaveTypeName)
+                .FirstOrDefaultAsync() ?? "Leave";
+
+            if (employee?.UserAccount?.Email != null)
+            {
+                _ = _emailService.SendLeaveSubmittedAsync(
+                    employee.UserAccount.Email,
+                    employee.DisplayName,
+                    leaveTypeName,
+                    vm.StartDate, vm.EndDate, days);
+            }
+
+            // ── Email: notify HR Admin / HR Staff to review ───────────────────
+            var hrUsers = await _context.Users
+                .Include(u => u.Role)
+                .Where(u => u.IsActive
+                         && (u.Role!.RoleName == "HR Admin" || u.Role.RoleName == "HR Staff"))
+                .ToListAsync();
+
+            foreach (var hr in hrUsers)
+            {
+                _ = _emailService.SendLeavePendingReviewAsync(
+                    hr.Email,
+                    hr.Username,
+                    employee?.DisplayName ?? "An employee",
+                    leaveTypeName,
+                    vm.StartDate, vm.EndDate, days,
+                    application.LeaveApplicationID);
+            }
+
             TempData["Success"] = "Leave application submitted successfully. Awaiting approval.";
             return RedirectToAction(nameof(Index));
         }
@@ -228,6 +267,62 @@ namespace PECCI_HRIS.Controllers
                 vm.Action, "Leave",
                 $"{vm.Action}d leave application #{application.LeaveApplicationID} for {application.Employee?.FullName}",
                 GetClientIP());
+
+            // ── Email: notify employee of the decision ────────────────────────
+            // Only send on terminal statuses (Approved / Rejected).
+            // "Pending HR" means the Manager approved but HR still needs to act —
+            // we send a "pending review" email to HR instead.
+            if (application.Status == "Approved" || application.Status == "Rejected")
+            {
+                var empUser = await _context.Users
+                    .FirstOrDefaultAsync(u => u.EmployeeID == application.EmployeeID);
+
+                var leaveTypeName = application.LeaveType?.LeaveTypeName
+                    ?? await _context.LeaveTypes
+                        .Where(lt => lt.LeaveTypeID == application.LeaveTypeID)
+                        .Select(lt => lt.LeaveTypeName)
+                        .FirstOrDefaultAsync()
+                    ?? "Leave";
+
+                if (empUser?.Email != null)
+                {
+                    _ = _emailService.SendLeaveDecisionAsync(
+                        empUser.Email,
+                        application.Employee?.DisplayName ?? empUser.Username,
+                        leaveTypeName,
+                        application.StartDate, application.EndDate, application.NumberOfDays,
+                        application.Status,
+                        GetCurrentUsername(),
+                        vm.Remarks);
+                }
+            }
+            else if (application.Status == "Pending HR")
+            {
+                // Manager approved — now alert HR to do the final review
+                var leaveTypeName = application.LeaveType?.LeaveTypeName
+                    ?? await _context.LeaveTypes
+                        .Where(lt => lt.LeaveTypeID == application.LeaveTypeID)
+                        .Select(lt => lt.LeaveTypeName)
+                        .FirstOrDefaultAsync()
+                    ?? "Leave";
+
+                var hrUsers = await _context.Users
+                    .Include(u => u.Role)
+                    .Where(u => u.IsActive
+                             && (u.Role!.RoleName == "HR Admin" || u.Role.RoleName == "HR Staff"))
+                    .ToListAsync();
+
+                foreach (var hr in hrUsers)
+                {
+                    _ = _emailService.SendLeavePendingReviewAsync(
+                        hr.Email,
+                        hr.Username,
+                        application.Employee?.DisplayName ?? "An employee",
+                        leaveTypeName,
+                        application.StartDate, application.EndDate, application.NumberOfDays,
+                        application.LeaveApplicationID);
+                }
+            }
 
             TempData["Success"] = $"Leave application {vm.Action.ToLower()}d successfully.";
             return RedirectToAction(nameof(Index));

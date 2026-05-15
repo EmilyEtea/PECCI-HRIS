@@ -33,7 +33,8 @@
                         <label asp-for="HolidayDate" class="form-label fw-semibold">
                             Holiday Date <span class="text-danger">*</span>
                         </label>
-                        <input asp-for="HolidayDate" type="date" class="form-control" />
+                        <input asp-for="HolidayDate" type="date" class="form-control"
+                               value="@Model.HolidayDate.ToString("yyyy-MM-dd")" />
                         <span asp-validation-for="HolidayDate" class="text-danger small"></span>
                     </div>
 

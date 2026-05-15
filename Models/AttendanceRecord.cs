@@ -30,6 +30,8 @@ namespace PECCI_HRIS.Models
 
         public double? UndertimeMinutes { get; set; }
 
+        public double? NightDifferentialMinutes { get; set; }
+
         [MaxLength(20)]
         public string AttendanceStatus { get; set; } = "Present"; // Present, Absent, Late, Half-day, On Leave, Holiday
 

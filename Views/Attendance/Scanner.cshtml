@@ -169,6 +169,13 @@
     </div>
 
     <script>
+        // ── Config from server (KioskSettings) ─────────────────────────────────
+        const SCAN_TIMEOUT_MS        = @ViewBag.ScanTimeoutMs;
+        const AUTO_RESET_MS          = @ViewBag.AutoResetSeconds * 1000;
+        const ERROR_RESET_MS         = @ViewBag.ErrorResetSeconds * 1000;
+        const PENDING_WINDOW_MS      = @ViewBag.PendingWindowSeconds * 1000;
+        const API_KEY                = '@ViewBag.ApiKey';
+
         // ── Live clock ──────────────────────────────────────────────────────────
         function updateClock() {
             const now = new Date();
@@ -184,13 +191,13 @@
         const input = document.getElementById('scanInput');
         let scanTimeout;
 
-        // Auto-submit after 300ms of no typing (scanner sends all chars fast)
+        // Auto-submit after SCAN_TIMEOUT_MS of no typing (scanner sends all chars fast)
         input.addEventListener('input', () => {
             clearTimeout(scanTimeout);
             scanTimeout = setTimeout(() => {
                 const val = input.value.trim();
                 if (val.length >= 3) processScan(val);
-            }, 300);
+            }, SCAN_TIMEOUT_MS);
         });
 
         // Also submit on Enter key
@@ -206,11 +213,18 @@
             input.value = '';
             input.focus();
 
+            // Capture device IP via a public echo service if available,
+            // otherwise fall back to empty string (server will use RemoteIpAddress).
+            const deviceIP = '';
+
+            const headers = { 'Content-Type': 'application/json' };
+            if (API_KEY) headers['X-Api-Key'] = API_KEY;
+
             try {
                 const res = await fetch('/Attendance/Scan', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ employeeNo: employeeNo })
+                    headers,
+                    body: JSON.stringify({ employeeNo, deviceIP })
                 });
                 const data = await res.json();
                 showResult(data);
@@ -227,7 +241,7 @@
                 errorBox.style.display = 'block';
                 resultBox.style.display = 'none';
                 document.getElementById('errorMsg').textContent = data.message;
-                setTimeout(() => { errorBox.style.display = 'none'; }, 4000);
+                setTimeout(() => { errorBox.style.display = 'none'; }, ERROR_RESET_MS);
                 return;
             }
 
@@ -243,7 +257,7 @@
                 resultBox.style.display = 'block';
 
                 const actionEl = document.getElementById('resultAction');
-                actionEl.textContent = data.action; // "CONFIRM TIME IN" or "CONFIRM TIME OUT"
+                actionEl.textContent = data.action;
                 actionEl.className = 'result-action action-pending';
 
                 document.getElementById('resultName').textContent = data.employeeName;
@@ -251,8 +265,7 @@
                 document.getElementById('resultTime').textContent = data.timeRecorded;
                 document.getElementById('resultMsg').textContent  = data.message;
 
-                // Auto-hide after 10 seconds (matches server pending window)
-                setTimeout(() => { resultBox.style.display = 'none'; }, 10000);
+                setTimeout(() => { resultBox.style.display = 'none'; }, PENDING_WINDOW_MS);
                 return;
             }
 
@@ -273,15 +286,14 @@
             document.getElementById('resultTime').textContent = data.timeRecorded;
             document.getElementById('resultMsg').textContent  = data.message;
 
-            // Auto-hide after 5 seconds
-            setTimeout(() => { resultBox.style.display = 'none'; }, 5000);
+            setTimeout(() => { resultBox.style.display = 'none'; }, AUTO_RESET_MS);
         }
 
         function showError(msg) {
             const errorBox = document.getElementById('errorBox');
             errorBox.style.display = 'block';
             document.getElementById('errorMsg').textContent = msg;
-            setTimeout(() => { errorBox.style.display = 'none'; }, 4000);
+            setTimeout(() => { errorBox.style.display = 'none'; }, ERROR_RESET_MS);
         }
 
         // Keep focus on input always

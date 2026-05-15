@@ -116,10 +116,26 @@ namespace PECCI_HRIS.Services
             DateTime periodEnd,
             decimal monthlySalary)
         {
+            return await ComputePeriodHolidayPayAsync(
+                employeeId, periodStart, periodEnd, monthlySalary,
+                _payrollSettings.RegularHolidayRateMultiplier,
+                _payrollSettings.SpecialHolidayRateMultiplier);
+        }
+
+        /// <summary>
+        /// Computes total holiday pay using explicit multipliers (e.g. from DB settings).
+        /// </summary>
+        public async Task<(decimal TotalHolidayPay, int HolidayCount)> ComputePeriodHolidayPayAsync(
+            int employeeId,
+            DateTime periodStart,
+            DateTime periodEnd,
+            decimal monthlySalary,
+            decimal regularMultiplier,
+            decimal specialMultiplier)
+        {
             var holidays = await GetHolidaysInRangeAsync(periodStart, periodEnd);
             if (!holidays.Any()) return (0m, 0);
 
-            // Load attendance records for the period once
             var attendance = await _context.AttendanceRecords
                 .Where(a => a.EmployeeID == employeeId
                          && a.AttendanceDate >= periodStart
@@ -131,13 +147,24 @@ namespace PECCI_HRIS.Services
             {
                 var record = attendance.FirstOrDefault(a => a.AttendanceDate.Date == holiday.HolidayDate.Date);
 
-                // Employee worked if they have a time-in record and status is not Absent/On Leave
                 bool worked = record != null
                     && record.TimeIn.HasValue
                     && record.AttendanceStatus != "Absent"
                     && record.AttendanceStatus != "On Leave";
 
-                total += ComputeHolidayPay(holiday, monthlySalary, worked);
+                decimal dailyRate = monthlySalary / 22m;
+                if (holiday.IsRegular)
+                {
+                    total += worked
+                        ? Math.Round(dailyRate * (regularMultiplier - 1m), 2)
+                        : Math.Round(dailyRate, 2);
+                }
+                else
+                {
+                    total += worked
+                        ? Math.Round(dailyRate * (specialMultiplier - 1m), 2)
+                        : 0m;
+                }
             }
 
             return (total, holidays.Count);

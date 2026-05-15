@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using PECCI_HRIS.Configuration;
 using PECCI_HRIS.Data;
 using PECCI_HRIS.Models;
 using PECCI_HRIS.Services;
@@ -14,14 +16,17 @@ namespace PECCI_HRIS.Controllers
         private readonly ApplicationDbContext _context;
         private readonly AttendanceComputationService _computeService;
         private readonly AuditService _auditService;
+        private readonly KioskSettings _kioskSettings;
 
         public AttendanceController(ApplicationDbContext context,
             AttendanceComputationService computeService,
-            AuditService auditService)
+            AuditService auditService,
+            IOptions<KioskSettings> kioskSettings)
         {
             _context = context;
             _computeService = computeService;
             _auditService = auditService;
+            _kioskSettings = kioskSettings.Value;
         }
 
         // ── List / History ───────────────────────────────────────────────────────
@@ -232,12 +237,21 @@ namespace PECCI_HRIS.Controllers
 
         private static readonly Dictionary<int, (string Action, DateTime Expires)> _pendingScans = new();
         private static readonly object _pendingLock = new();
-        private const int PendingWindowSeconds = 10;
 
         [HttpPost]
         [AllowAnonymous]
         public async Task<IActionResult> Scan([FromBody] ScanRequest request)
         {
+            // ── Optional API key check ────────────────────────────────────────
+            // If KioskSettings.ApiKey is set, the scanner terminal must send it
+            // in the X-Api-Key header. Requests without it are rejected.
+            if (!string.IsNullOrWhiteSpace(_kioskSettings.ApiKey))
+            {
+                var providedKey = Request.Headers["X-Api-Key"].FirstOrDefault();
+                if (providedKey != _kioskSettings.ApiKey)
+                    return Json(new ScanResult { Success = false, Message = "Unauthorized." });
+            }
+
             if (string.IsNullOrWhiteSpace(request?.EmployeeNo))
                 return Json(new ScanResult { Success = false, Message = "No ID scanned." });
 
@@ -327,7 +341,7 @@ namespace PECCI_HRIS.Controllers
                 // First scan — set pending, ask to scan again
                 lock (_pendingLock)
                 {
-                    _pendingScans[employee.EmployeeID] = (neededAction, DateTime.Now.AddSeconds(PendingWindowSeconds));
+                    _pendingScans[employee.EmployeeID] = (neededAction, DateTime.Now.AddSeconds(_kioskSettings.PendingWindowSeconds));
                 }
 
                 return Json(new ScanResult
@@ -338,7 +352,7 @@ namespace PECCI_HRIS.Controllers
                     EmployeeName = employee.DisplayName,
                     Department   = employee.Department?.DepartmentName ?? "",
                     TimeRecorded = now.ToString(@"hh\:mm\:ss"),
-                    Message      = $"Scan again within {PendingWindowSeconds}s to confirm {neededAction}.",
+                    Message      = $"Scan again within {_kioskSettings.PendingWindowSeconds}s to confirm {neededAction}.",
                     IsLate       = false,
                     IsPending    = true
                 });
@@ -422,6 +436,12 @@ namespace PECCI_HRIS.Controllers
         [AllowAnonymous]
         public IActionResult Scanner()
         {
+            ViewBag.ScanTimeoutMs        = _kioskSettings.ScanTimeoutMs;
+            ViewBag.AutoResetSeconds     = _kioskSettings.AutoResetSeconds;
+            ViewBag.ErrorResetSeconds    = _kioskSettings.ErrorResetSeconds;
+            ViewBag.PendingWindowSeconds = _kioskSettings.PendingWindowSeconds;
+            ViewBag.ApiKeyRequired       = !string.IsNullOrWhiteSpace(_kioskSettings.ApiKey);
+            ViewBag.ApiKey               = _kioskSettings.ApiKey ?? string.Empty;
             return View();
         }
 

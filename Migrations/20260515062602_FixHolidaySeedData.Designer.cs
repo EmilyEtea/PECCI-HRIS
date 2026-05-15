@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PECCI_HRIS.Data;
 
@@ -11,9 +12,11 @@ using PECCI_HRIS.Data;
 namespace PECCI_HRIS.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260515062602_FixHolidaySeedData")]
+    partial class FixHolidaySeedData
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -60,9 +63,6 @@ namespace PECCI_HRIS.Migrations
                         .HasColumnType("bit");
 
                     b.Property<double?>("LateMinutes")
-                        .HasColumnType("float");
-
-                    b.Property<double?>("NightDifferentialMinutes")
                         .HasColumnType("float");
 
                     b.Property<double?>("OvertimeMinutes")

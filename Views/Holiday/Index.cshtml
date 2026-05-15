@@ -222,7 +222,8 @@
                                                 <button type="button"
                                                         class="btn btn-sm btn-outline-danger"
                                                         title="Delete"
-                                                        onclick="swalDanger(this, 'Delete holiday: @h.HolidayName?', 'Yes, Delete')">
+                                                        data-name="@h.HolidayName"
+                                                        onclick="swalDanger(this, 'Delete holiday: ' + this.dataset.name + '?', 'Yes, Delete')">
                                                     <i class="fas fa-trash"></i>
                                                 </button>
                                             </form>

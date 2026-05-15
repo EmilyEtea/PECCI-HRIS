@@ -110,6 +110,9 @@ namespace PECCI_HRIS.Services
                     else
                         record.AttendanceStatus = "Present";
                 }
+
+                // ── Night Differential ────────────────────────────────────────
+                record.NightDifferentialMinutes = ComputeNightDifferentialMinutes(record);
             }
         }
 
@@ -148,6 +151,112 @@ namespace PECCI_HRIS.Services
             return Math.Round((decimal)undertimeMinutes * perMinuteRate, 2);
         }
 
+        // ── Night Differential ────────────────────────────────────────────────
+
+        /// <summary>
+        /// Computes the number of minutes an employee worked within the night differential
+        /// window (default 22:00 – 06:00) for a single attendance record.
+        ///
+        /// The window crosses midnight, so it is split into two segments:
+        ///   Segment A: NDStart → midnight  (e.g. 22:00 – 24:00)
+        ///   Segment B: midnight → NDEnd    (e.g. 00:00 – 06:00)
+        ///
+        /// We intersect the employee's actual work span with each segment and sum the overlap.
+        /// </summary>
+        public double ComputeNightDifferentialMinutes(AttendanceRecord record)
+        {
+            if (!record.TimeIn.HasValue || !record.TimeOut.HasValue) return 0;
+
+            TimeSpan ndStart = TimeSpan.Parse(_payrollSettings.NightDifferentialStartTime); // 22:00
+            TimeSpan ndEnd   = TimeSpan.Parse(_payrollSettings.NightDifferentialEndTime);   // 06:00
+
+            TimeSpan timeIn  = record.TimeIn.Value;
+            TimeSpan timeOut = record.TimeOut.Value;
+
+            // Handle overnight shifts: if TimeOut < TimeIn, the shift crosses midnight.
+            // Normalise by adding 24h to TimeOut so arithmetic works on a linear scale.
+            bool overnightShift = timeOut < timeIn;
+            if (overnightShift)
+                timeOut = timeOut.Add(TimeSpan.FromHours(24));
+
+            double ndMinutes = 0;
+
+            // ── Segment A: NDStart → midnight (22:00 → 24:00) ────────────────
+            TimeSpan segAStart = ndStart;                        // 22:00
+            TimeSpan segAEnd   = TimeSpan.FromHours(24);         // 24:00 (midnight)
+
+            ndMinutes += OverlapMinutes(timeIn, timeOut, segAStart, segAEnd);
+
+            // ── Segment B: midnight → NDEnd (24:00 → 30:00 in +24h space) ────
+            // Shift segment B forward by 24h so it sits on the same linear scale
+            // as an overnight timeOut.
+            TimeSpan segBStart = TimeSpan.FromHours(24);                    // 00:00 → 24:00
+            TimeSpan segBEnd   = TimeSpan.FromHours(24) + ndEnd;            // 06:00 → 30:00
+
+            ndMinutes += OverlapMinutes(timeIn, timeOut, segBStart, segBEnd);
+
+            return Math.Round(ndMinutes, 2);
+        }
+
+        /// <summary>Returns the overlapping minutes between [workStart,workEnd) and [segStart,segEnd).</summary>
+        private static double OverlapMinutes(TimeSpan workStart, TimeSpan workEnd,
+                                             TimeSpan segStart,  TimeSpan segEnd)
+        {
+            TimeSpan overlapStart = workStart > segStart ? workStart : segStart;
+            TimeSpan overlapEnd   = workEnd   < segEnd   ? workEnd   : segEnd;
+            double minutes = (overlapEnd - overlapStart).TotalMinutes;
+            return minutes > 0 ? minutes : 0;
+        }
+
+        /// <summary>
+        /// Computes the night differential pay amount for a given number of ND minutes
+        /// and the employee's monthly salary.
+        ///
+        /// Formula (DOLE): ND pay = NDMinutes / 60 × hourlyRate × NDRate
+        /// where NDRate defaults to 10% (0.10).
+        /// </summary>
+        public decimal ComputeNightDifferentialPay(double ndMinutes, decimal monthlySalary)
+        {
+            if (ndMinutes <= 0) return 0;
+
+            decimal hourlyRate = (monthlySalary / 22m) / 8m;
+            decimal ndHours    = (decimal)ndMinutes / 60m;
+            return Math.Round(hourlyRate * ndHours * _payrollSettings.NightDifferentialRate, 2);
+        }
+
+        /// <summary>
+        /// Computes the night differential pay amount using an explicit rate override.
+        /// Used when the rate has been loaded from the SystemSettings DB table.
+        /// </summary>
+        public decimal ComputeNightDifferentialPay(double ndMinutes, decimal monthlySalary, decimal ndRate)
+        {
+            if (ndMinutes <= 0) return 0;
+
+            decimal hourlyRate = (monthlySalary / 22m) / 8m;
+            decimal ndHours    = (decimal)ndMinutes / 60m;
+            return Math.Round(hourlyRate * ndHours * ndRate, 2);
+        }
+
+        /// <summary>
+        /// Computes total night differential pay for a collection of attendance records.
+        /// </summary>
+        public decimal ComputeTotalNightDifferentialPay(
+            IEnumerable<AttendanceRecord> records, decimal monthlySalary)
+        {
+            double totalNdMinutes = records.Sum(r => r.NightDifferentialMinutes ?? 0);
+            return ComputeNightDifferentialPay(totalNdMinutes, monthlySalary);
+        }
+
+        /// <summary>
+        /// Computes total night differential pay using an explicit rate override.
+        /// </summary>
+        public decimal ComputeTotalNightDifferentialPay(
+            IEnumerable<AttendanceRecord> records, decimal monthlySalary, decimal ndRate)
+        {
+            double totalNdMinutes = records.Sum(r => r.NightDifferentialMinutes ?? 0);
+            return ComputeNightDifferentialPay(totalNdMinutes, monthlySalary, ndRate);
+        }
+
         /// <summary>
         /// Computes overtime pay for a given number of overtime minutes and hourly rate.
         /// </summary>
@@ -165,6 +274,29 @@ namespace PECCI_HRIS.Services
                 multiplier = _payrollSettings.SpecialHolidayRateMultiplier * _payrollSettings.OvertimeRateMultiplier;
             else if (isRestDay)
                 multiplier = _payrollSettings.RestDayOvertimeRateMultiplier;
+
+            decimal overtimeHours = (decimal)overtimeMinutes / 60m;
+            return Math.Round(hourlyRate * multiplier * overtimeHours, 2);
+        }
+
+        /// <summary>
+        /// Computes overtime pay using explicit rate overrides from DB settings.
+        /// </summary>
+        public decimal ComputeOvertimePay(double overtimeMinutes, decimal monthlySalary,
+            PayrollSettings settings,
+            bool isRestDay = false, bool isSpecialHoliday = false, bool isRegularHoliday = false)
+        {
+            if (overtimeMinutes <= 0) return 0;
+
+            decimal hourlyRate = (monthlySalary / 22m) / 8m;
+            decimal multiplier = settings.OvertimeRateMultiplier;
+
+            if (isRegularHoliday)
+                multiplier = settings.RegularHolidayRateMultiplier * settings.OvertimeRateMultiplier;
+            else if (isSpecialHoliday)
+                multiplier = settings.SpecialHolidayRateMultiplier * settings.OvertimeRateMultiplier;
+            else if (isRestDay)
+                multiplier = settings.RestDayOvertimeRateMultiplier;
 
             decimal overtimeHours = (decimal)overtimeMinutes / 60m;
             return Math.Round(hourlyRate * multiplier * overtimeHours, 2);

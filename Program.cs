@@ -17,6 +17,8 @@ builder.Services.Configure<PayrollSettings>(
     builder.Configuration.GetSection(PayrollSettings.SectionName));
 builder.Services.Configure<KioskSettings>(
     builder.Configuration.GetSection(KioskSettings.SectionName));
+builder.Services.Configure<EmailSettings>(
+    builder.Configuration.GetSection(EmailSettings.SectionName));
 
 // ── Application services ──────────────────────────────────────────────────────
 builder.Services.AddScoped<AttendanceComputationService>();
@@ -27,6 +29,8 @@ builder.Services.AddScoped<PayslipPdfService>();
 builder.Services.AddScoped<ExcelExportService>();
 builder.Services.AddScoped<RecurringDeductionService>();
 builder.Services.AddScoped<HolidayService>();
+builder.Services.AddScoped<SystemSettingsService>();
+builder.Services.AddScoped<EmailService>();
 builder.Services.AddHostedService<LeaveCreditRefreshJob>();
 
 // ── Authentication ────────────────────────────────────────────────────────────

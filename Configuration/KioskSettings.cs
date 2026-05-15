@@ -18,5 +18,11 @@ namespace PECCI_HRIS.Configuration
 
         /// <summary>Debounce delay in ms before auto-submitting scan input. Default: 400.</summary>
         public int ScanTimeoutMs { get; set; } = 400;
+
+        /// <summary>
+        /// Seconds a first scan stays "pending" waiting for confirmation.
+        /// Default: 10.
+        /// </summary>
+        public int PendingWindowSeconds { get; set; } = 10;
     }
 }

@@ -18,13 +18,15 @@ namespace PECCI_HRIS.Controllers
         private readonly AuditService _auditService;
         private readonly PayslipPdfService _pdfService;
         private readonly HolidayService _holidayService;
+        private readonly SystemSettingsService _settingsService;
 
         public PayrollController(ApplicationDbContext context,
             TaxComputationService taxService,
             AttendanceComputationService attendanceService,
             AuditService auditService,
             PayslipPdfService pdfService,
-            HolidayService holidayService)
+            HolidayService holidayService,
+            SystemSettingsService settingsService)
         {
             _context = context;
             _taxService = taxService;
@@ -32,6 +34,7 @@ namespace PECCI_HRIS.Controllers
             _auditService = auditService;
             _pdfService = pdfService;
             _holidayService = holidayService;
+            _settingsService = settingsService;
         }
 
         // ── Payroll List ──────────────────────────────────────────────────────────
@@ -96,6 +99,17 @@ namespace PECCI_HRIS.Controllers
 
             string payPeriod = $"{vm.Year}-{vm.Month:D2}-{vm.CutoffPeriod}";
 
+            // Working days in the period (Mon–Fri, excluding weekends)
+            int workingDaysInPeriod = Enumerable
+                .Range(0, (periodEnd - periodStart).Days + 1)
+                .Count(d => {
+                    var day = periodStart.AddDays(d).DayOfWeek;
+                    return day != DayOfWeek.Saturday && day != DayOfWeek.Sunday;
+                });
+
+            // Load settings from DB (overrides appsettings.json)
+            var payrollSettings = await _settingsService.GetPayrollSettingsAsync();
+
             // Get employees to compute
             var employees = vm.EmployeeID.HasValue
                 ? await _context.Employees.Include(e => e.Position)
@@ -120,31 +134,65 @@ namespace PECCI_HRIS.Controllers
                                 a.AttendanceDate <= periodEnd)
                     .ToListAsync();
 
-                double totalLateMinutes    = attendance.Sum(a => a.LateMinutes ?? 0);
+                double totalLateMinutes     = attendance.Sum(a => a.LateMinutes ?? 0);
                 double totalOvertimeMinutes = attendance.Sum(a => a.OvertimeMinutes ?? 0);
-                int daysAbsent = attendance.Count(a => a.AttendanceStatus == "Absent");
-                int daysWorked = attendance.Count(a => a.AttendanceStatus != "Absent");
+                int daysAbsent  = attendance.Count(a => a.AttendanceStatus == "Absent");
+                int daysWorked  = attendance.Count(a => a.AttendanceStatus != "Absent"
+                                                     && a.AttendanceStatus != "On Leave");
 
-                // Compute deductions
-                var govDeductions = _taxService.ComputeGovernmentDeductions(basicSalary * 2); // monthly basis
-                decimal sss       = govDeductions.SSS / 2;
+                // Compute government deductions
+                var govDeductions = _taxService.ComputeGovernmentDeductions(basicSalary * 2);
+                decimal sss        = govDeductions.SSS / 2;
                 decimal philHealth = govDeductions.PhilHealth / 2;
-                decimal pagIbig   = govDeductions.PagIbig / 2;
-                decimal tax       = govDeductions.WithholdingTax / 2;
+                decimal pagIbig    = govDeductions.PagIbig / 2;
+                decimal tax        = govDeductions.WithholdingTax / 2;
 
                 decimal lateDeduction      = _attendanceService.ComputeLateDeduction(totalLateMinutes, basicSalary * 2);
                 decimal undertimeDeduction = _attendanceService.ComputeUndertimeDeduction(attendance.Sum(a => a.UndertimeMinutes ?? 0), basicSalary * 2);
-                decimal overtimePay        = _attendanceService.ComputeOvertimePay(totalOvertimeMinutes, basicSalary * 2);
+                // Use DB-resolved OT rate so Settings UI changes take effect immediately
+                decimal overtimePay        = _attendanceService.ComputeOvertimePay(totalOvertimeMinutes, basicSalary * 2, payrollSettings);
 
-                // Holiday pay — computed from the holiday calendar
+                // Holiday pay — uses DB-resolved multipliers
                 var (holidayPay, _) = await _holidayService.ComputePeriodHolidayPayAsync(
-                    emp.EmployeeID, periodStart, periodEnd, basicSalary * 2);
+                    emp.EmployeeID, periodStart, periodEnd, basicSalary * 2,
+                    payrollSettings.RegularHolidayRateMultiplier,
+                    payrollSettings.SpecialHolidayRateMultiplier);
+
+                // Night differential pay — uses DB-resolved ND rate
+                decimal nightDifferentialPay = _attendanceService.ComputeTotalNightDifferentialPay(
+                    attendance, basicSalary * 2, payrollSettings.NightDifferentialRate);
 
                 // Absent deduction
-                decimal dailyRate = (basicSalary * 2) / 22m;
+                decimal dailyRate       = (basicSalary * 2) / 22m;
                 decimal absentDeduction = dailyRate * daysAbsent;
 
-                // Custom deductions (loans, cash advances, etc.) from EmployeeDeductions table
+                // ── Leave deductions ──────────────────────────────────────────
+                // Deduct unpaid leave days taken during this period.
+                // Only unpaid leave types (IsPaid = false) are deducted.
+                // Approved leave applications whose date range overlaps the period
+                // are counted; each day is deducted at the employee's daily rate.
+                var leaveApplications = await _context.LeaveApplications
+                    .Include(l => l.LeaveType)
+                    .Where(l => l.EmployeeID == emp.EmployeeID
+                             && l.Status == "Approved"
+                             && l.StartDate <= periodEnd
+                             && l.EndDate   >= periodStart)
+                    .ToListAsync();
+
+                decimal leaveDeduction = 0m;
+                foreach (var leave in leaveApplications)
+                {
+                    if (leave.LeaveType?.IsPaid == false)
+                    {
+                        // Clamp the leave range to the payroll period
+                        var overlapStart = leave.StartDate < periodStart ? periodStart : leave.StartDate;
+                        var overlapEnd   = leave.EndDate   > periodEnd   ? periodEnd   : leave.EndDate;
+                        decimal unpaidDays = (decimal)(overlapEnd - overlapStart).TotalDays + 1;
+                        leaveDeduction += dailyRate * unpaidDays;
+                    }
+                }
+
+                // Custom deductions (loans, cash advances, etc.)
                 var customDeductions = await _context.EmployeeDeductions
                     .Where(d => d.EmployeeID == emp.EmployeeID
                              && d.Month == vm.Month
@@ -163,13 +211,16 @@ namespace PECCI_HRIS.Controllers
                     BasicSalary            = basicSalary,
                     OvertimePay            = overtimePay,
                     HolidayPay             = holidayPay,
+                    NightDifferential      = nightDifferentialPay,
                     SSSContribution        = sss,
                     PhilHealthContribution = philHealth,
                     PagIbigContribution    = pagIbig,
                     WithholdingTax         = tax,
                     LateDeductions         = lateDeduction,
                     UndertimeDeductions    = undertimeDeduction,
+                    LeaveDeductions        = leaveDeduction,
                     OtherDeductions        = absentDeduction + customDeductionTotal,
+                    WorkingDays            = workingDaysInPeriod,
                     DaysWorked             = daysWorked,
                     DaysAbsent             = daysAbsent,
                     TotalOvertimeHours     = totalOvertimeMinutes / 60.0,
