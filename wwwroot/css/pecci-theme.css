@@ -564,6 +564,10 @@ a:hover { color: var(--pecci-green-light); text-decoration: underline; }
 }
 
 /* ── Settings Page ───────────────────────────────────────────────────────────── */
+/* --pecci-blue is used in the Settings BIR tax table header */
+:root {
+    --pecci-blue: #1565C0;
+}
 .setting-row {
     display: flex;
     align-items: center;

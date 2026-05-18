@@ -106,12 +106,16 @@ PECCI_HRIS/
 │   └── BaseController       # Shared helper methods
 ├── Data/
 │   └── ApplicationDbContext # EF Core DbContext + seed data
-├── Models/                  # 14 entity models
-├── Services/                # 4 business logic services
-│   ├── AttendanceComputationService
-│   ├── TaxComputationService
-│   ├── LeaveCreditService
-│   └── AuditService
+├── Models/                  # 15 entity models
+├── Services/                # 8 services
+│   ├── AttendanceComputationService  # Late/OT/undertime computation
+│   ├── TaxComputationService         # BIR TRAIN Law tax + gov't contributions
+│   ├── LeaveCreditService            # Leave credit allocation & refresh
+│   ├── AuditService                  # Audit log writer
+│   ├── PayslipPdfService             # iText7 PDF payslip generation
+│   ├── ExcelExportService            # ClosedXML Excel report export
+│   ├── RecurringDeductionService     # Auto-generates deductions from schedules
+│   └── LeaveCreditRefreshJob         # Background job: annual leave credit refresh
 ├── ViewModels/              # View models for all forms & displays
 ├── Views/                   # 55+ Razor views
 │   ├── Account/
@@ -133,10 +137,17 @@ PECCI_HRIS/
 ### 3.2 Dependency Injection
 All services are registered in `Program.cs`:
 ```csharp
+// Scoped services (one instance per HTTP request)
 builder.Services.AddScoped<AttendanceComputationService>();
 builder.Services.AddScoped<TaxComputationService>();
 builder.Services.AddScoped<AuditService>();
 builder.Services.AddScoped<LeaveCreditService>();
+builder.Services.AddScoped<PayslipPdfService>();
+builder.Services.AddScoped<ExcelExportService>();
+builder.Services.AddScoped<RecurringDeductionService>();
+
+// Hosted background service (runs once after startup)
+builder.Services.AddHostedService<LeaveCreditRefreshJob>();
 ```
 
 ### 3.3 Configuration Binding
@@ -916,19 +927,18 @@ Returns computed late threshold for live preview in the Settings UI.
 
 ## 12. Known Issues & Limitations
 
-### Implemented but not yet wired
-1. **PDF Payslip Export** — iText7 is included as a dependency. Payslips can currently be printed via browser (`Ctrl+P`). A dedicated PDF download endpoint is planned. [Implementation done- 04/28]
-2. **Excel Report Export** — ClosedXML is included. Reports can be printed via browser. Export-to-Excel buttons are planned for a future sprint. [Implementation done- 04/30]
+### Fully implemented
+1. **PDF Payslip Export** — iText7 generates single and multi-page PDFs. Download buttons on the Payslips page (`DownloadPdf`, `DownloadAllPdf`). Includes PECCI logo watermark.
+2. **Excel Report Export** — ClosedXML exports all 4 report types (Employee List, Attendance Summary, Leave Summary, Payroll Summary). Export buttons on each report page.
+3. **Recurring Deductions** — `RecurringDeductionSchedule` model and `RecurringDeductionService` implemented. Schedules auto-generate `EmployeeDeduction` entries per cutoff. UI for managing schedules is planned.
+4. **Leave Credit Background Refresh** — `LeaveCreditRefreshJob` runs 5 seconds after startup. Only allocates if no credits exist for the current year — no performance impact on normal restarts.
 
 ### Not yet implemented
-3. **Email Notifications** — Leave approval/rejection notifications via email are not in this version. [Implementation done- 5/15]
-4. **Biometric Device Integration** — Time In/Out is web-based. The Scanner Terminal supports barcode/RFID via keyboard-wedge scanners. Native biometric device SDK integration is out of scope. [Implementation done- 5/15]
-5. **Holiday Calendar** — Regular and special Philippine holidays must be manually marked in attendance records. An automated holiday calendar (based on Proclamation list) is planned. [Implementation done- 5/11]
-6. **Night Differential Auto-Computation** — Night differential rate is defined in settings but not automatically applied during payroll. Manual entry via `OtherEarnings` is required for now. [Implementation done- 5/15]
-7. **Recurring Deductions** — Each deduction entry covers one cutoff period. Recurring loan deductions (e.g., monthly SSS loan amortization) must be re-entered each cutoff. A recurring deduction schedule feature is planned. [Implementation done- 04/30]
-
-### Performance notes
-8. **Leave Credit Refresh on Startup** — `LeaveCreditService.RefreshAnnualCredits()` runs on every app startup. It is idempotent (only creates missing records) but may be slow if there are many employees. Consider moving to a scheduled background job in production. [Implementation done- 04/28]
+5. **Recurring Deduction UI** — The `RecurringDeductionService` and model are complete but there is no controller or views for HR to manage recurring schedules. Must be done via direct DB entry for now.
+6. **Email Notifications** — Leave approval/rejection notifications via email are not in this version.
+7. **Biometric Device Integration** — Time In/Out is web-based. The Scanner Terminal supports barcode/RFID via keyboard-wedge scanners. Native biometric device SDK integration is out of scope.
+8. **Holiday Calendar** — Regular and special Philippine holidays must be manually marked in attendance records. An automated holiday calendar (based on Proclamation list) is planned.
+9. **Night Differential Auto-Computation** — Night differential rate is defined in settings but not automatically applied during payroll. Manual entry via `OtherEarnings` is required for now.
 
 ---
 

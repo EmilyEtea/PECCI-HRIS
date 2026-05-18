@@ -7,9 +7,11 @@ namespace PECCI_HRIS.ViewModels
     {
         public int EmployeeID { get; set; }
 
-        [Required, Display(Name = "Employee No.")]
-        [StringLength(8, MinimumLength = 7, ErrorMessage = "Employee No. must be 7 to 8 characters.")]
-        public string EmployeeNo { get; set; } = string.Empty;
+        // NOT required — auto-generated as EMP-XXXX if left blank
+        [Display(Name = "Employee No.")]
+        [RegularExpression(@"^[A-Za-z0-9\-]*$",
+            ErrorMessage = "Employee No. can only contain letters, numbers, and hyphens.")]
+        public string? EmployeeNo { get; set; }
 
         [Required(ErrorMessage = "First name is required.")]
         [MaxLength(50)]

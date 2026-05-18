@@ -59,11 +59,14 @@ builder.Services.AddSession(options =>
 var app = builder.Build();
 
 // ── Middleware pipeline ───────────────────────────────────────────────────────
-// Show detailed errors in browser to help diagnose issues
-app.UseDeveloperExceptionPage();
-
-if (!app.Environment.IsDevelopment())
+// Only show detailed error pages in development — production uses the generic handler
+if (app.Environment.IsDevelopment())
 {
+    app.UseDeveloperExceptionPage();
+}
+else
+{
+    app.UseExceptionHandler("/Home/Error");
     app.UseHsts();
 }
 

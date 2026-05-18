@@ -14,6 +14,12 @@ using PECCI_HRIS.ViewModels;
 
 namespace PECCI_HRIS.Services
 {
+    /// <summary>
+    /// Generates PDF payslips using iText7.
+    /// Produces a single payslip or a multi-page PDF with one payslip per page.
+    /// Each page includes a semi-transparent PECCI logo watermark.
+    /// Called from PayrollController.DownloadPdf() and DownloadAllPdf().
+    /// </summary>
     public class PayslipPdfService
     {
         private static readonly DeviceRgb GreenColor  = new(0x2d, 0x6a, 0x4f);

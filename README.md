@@ -63,6 +63,7 @@ A comprehensive web-based HRIS built with **ASP.NET Core MVC (.NET 10)**, Entity
 - ✅ Types: SSS Loan, Pag-IBIG Loan, PECCI Loan, Cash Advance, Other
 - ✅ **Automatically picked up during payroll computation**
 - ✅ Status lifecycle: Active → Applied (auto) / Cancelled (manual)
+- ✅ **Recurring deduction schedules** — define installment-based loans once, auto-generates entries each cutoff (`RecurringDeductionService`)
 
 ### Payroll
 - ✅ **BIR TRAIN Law (RA 10963) tax computation** — RR 2-2023 (2023 onwards)
@@ -75,6 +76,7 @@ A comprehensive web-based HRIS built with **ASP.NET Core MVC (.NET 10)**, Entity
 - ✅ Custom deductions from Deductions module integrated automatically
 - ✅ Semi-monthly cutoffs (1st–15th, 16th–30th)
 - ✅ Payslip view with full earnings/deductions breakdown
+- ✅ **PDF payslip download** (single or all, with PECCI logo watermark) — iText7
 - ✅ Finalization workflow (Draft → Finalized)
 
 ### Reports
@@ -82,6 +84,7 @@ A comprehensive web-based HRIS built with **ASP.NET Core MVC (.NET 10)**, Entity
 - ✅ Attendance Summary report (monthly, per employee)
 - ✅ Leave Summary report (annual)
 - ✅ Payroll Summary report (monthly totals)
+- ✅ **Excel export** for all 4 report types — ClosedXML
 - ✅ All reports are print-ready
 
 ### Administration
@@ -224,9 +227,17 @@ PECCI_HRIS/
 ├── Controllers/            # 14 MVC controllers
 ├── Data/                   # ApplicationDbContext + migrations
 ├── Database/               # SQL scripts & setup guide
-├── Documentation/          # Technical documentation
-├── Models/                 # 14 entity models
-├── Services/               # AttendanceComputation, Tax, LeaveCredit, Audit
+├── Documentation/          # Technical documentation & PDF
+├── Models/                 # 15 entity models
+├── Services/               # 8 services
+│   ├── AttendanceComputationService  # Late/OT/undertime logic
+│   ├── TaxComputationService         # BIR TRAIN Law + SSS/PhilHealth/Pag-IBIG
+│   ├── LeaveCreditService            # Leave credit allocation
+│   ├── AuditService                  # Audit log writer
+│   ├── PayslipPdfService             # iText7 PDF generation
+│   ├── ExcelExportService            # ClosedXML Excel exports
+│   ├── RecurringDeductionService     # Auto-generates recurring deductions
+│   └── LeaveCreditRefreshJob         # Background: annual leave credit refresh
 ├── ViewModels/             # View models for all forms & displays
 ├── Views/                  # 55+ Razor views
 │   ├── Account/            # Login, Profile, AccessDenied
@@ -235,8 +246,8 @@ PECCI_HRIS/
 │   ├── Dashboard/
 │   ├── Employee/
 │   ├── Leave/
-│   ├── Payroll/
-│   ├── Reports/
+│   ├── Payroll/            # Index, Compute, Payslips (with PDF download)
+│   ├── Reports/            # Index + 4 reports (with Excel export)
 │   ├── Settings/
 │   └── Shared/             # _Layout.cshtml
 ├── wwwroot/

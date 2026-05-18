@@ -4,6 +4,11 @@ using PECCI_HRIS.ViewModels;
 
 namespace PECCI_HRIS.Services
 {
+    /// <summary>
+    /// Generates Excel (.xlsx) exports for all report types using ClosedXML.
+    /// Each method returns a byte array that the controller streams as a file download.
+    /// Reports include: Employee List, Attendance Summary, Leave Summary, Payroll Summary.
+    /// </summary>
     public class ExcelExportService
     {
         private const string CompanyName = "PECCI Multipurpose Cooperative";
