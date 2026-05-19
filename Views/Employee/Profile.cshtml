@@ -20,9 +20,18 @@
     </div>
     @if (isHR)
     {
-        <a asp-action="Edit" asp-route-id="@Model.EmployeeID" class="btn btn-pecci-primary">
-            <i class="fas fa-edit me-1"></i> Edit
-        </a>
+        <div class="d-flex gap-2">
+            <a asp-action="Edit" asp-route-id="@Model.EmployeeID" class="btn btn-pecci-primary">
+                <i class="fas fa-edit me-1"></i> Edit
+            </a>
+            @if (User.IsInRole("HR Admin") && Model.Status == "Active")
+            {
+                <button type="button" class="btn btn-outline-danger"
+                        data-bs-toggle="modal" data-bs-target="#deactivateModal">
+                    <i class="fas fa-user-slash me-1"></i> Deactivate
+                </button>
+            }
+        </div>
     }
 </div>
 
@@ -183,3 +192,64 @@
     Developed by <strong>UST Interns</strong>:
     Arkin Reinier Aguilar &bull; Maxenne De Guzman &bull; Bernice Elyssa Soriano &bull; Emily Etea
 </div>
+
+<!-- Deactivate Confirmation Modal -->
+@if (User.IsInRole("HR Admin") && Model.Status == "Active")
+{
+    <div class="modal fade" id="deactivateModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header border-danger">
+                    <h5 class="modal-title text-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>Deactivate Employee
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>You are about to deactivate <strong>@Model.FullName</strong> (@Model.EmployeeNo).</p>
+                    <p class="text-muted small mb-3">
+                        The employee will be marked as <strong>Inactive</strong> and removed from active payroll,
+                        attendance, and leave processing. All historical records are preserved.
+                    </p>
+                    <form asp-action="Deactivate" asp-route-id="@Model.EmployeeID" method="post" id="deactivateForm">
+                        @Html.AntiForgeryToken()
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                Reason for Deactivation <span class="text-danger">*</span>
+                            </label>
+                            <select name="reason" class="form-select" id="deactivateReason" required>
+                                <option value="">Select reason...</option>
+                                <option value="Resigned">Resigned</option>
+                                <option value="Terminated">Terminated</option>
+                                <option value="Retired">Retired</option>
+                                <option value="End of Contract">End of Contract</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        Cancel
+                    </button>
+                    <button type="button" class="btn btn-danger" onclick="submitDeactivate()">
+                        <i class="fas fa-user-slash me-1"></i> Confirm Deactivate
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+<script>
+    function submitDeactivate() {
+        const reason = document.getElementById('deactivateReason').value;
+        if (!reason) {
+            alert('Please select a reason for deactivation.');
+            return;
+        }
+        document.getElementById('deactivateForm').submit();
+    }
+</script>
+}
