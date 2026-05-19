@@ -78,6 +78,7 @@ A comprehensive web-based HRIS built with **ASP.NET Core MVC (.NET 10)**, Entity
 - ✅ Payslip view with full earnings/deductions breakdown
 - ✅ **PDF payslip download** (single or all, with PECCI logo watermark) — iText7
 - ✅ Finalization workflow (Draft → Finalized)
+- ✅ **13th Month Pay** (PD 851) — compute per year, Excel export, tax-exempt breakdown per TRAIN Law
 
 ### Reports
 - ✅ Employee List report (filterable by department/status)
@@ -91,7 +92,9 @@ A comprehensive web-based HRIS built with **ASP.NET Core MVC (.NET 10)**, Entity
 - ✅ **System Settings UI** — adjust all rules without touching code or restarting
 - ✅ User management (create, edit, reset password, activate/deactivate)
 - ✅ Audit trail viewer (filterable by module, action, user, date)
-- ✅ Dashboard with real-time stats, attendance chart, upcoming birthdays
+- ✅ Dashboard with real-time stats, attendance donut chart, upcoming birthdays
+- ✅ **Dashboard charts** — Headcount by Department (bar), Monthly Payroll Cost Trend (line), Leave Utilization (horizontal bar)
+- ✅ **Employee Deactivation** — HR Admin can deactivate employees with reason selection from the Profile page
 
 ---
 
@@ -268,8 +271,9 @@ PECCI_HRIS/
 │   ├── Dashboard/
 │   ├── Employee/
 │   ├── Leave/
-│   ├── Payroll/            # Index, Compute, Payslips (with PDF download)
+│   ├── Payroll/            # Index, Compute, Payslips (with PDF download), 13th Month Pay
 │   ├── Reports/            # Index + 4 reports (with Excel export)
+│   ├── RecurringDeduction/ # Index, Create, Edit
 │   ├── Settings/
 │   └── Shared/             # _Layout.cshtml
 ├── wwwroot/

@@ -4,7 +4,7 @@
 
 ---
 
-**Version:** 1.1.0
+**Version:** 1.3.0
 **Year:** 2026
 **Developed by:** UST Interns — Arkin Reinier Aguilar, Maxenne De Guzman, Bernice Elyssa Soriano, Emily Etea
 **Repository:** https://github.com/EmilyEtea/PECCI-HRIS
@@ -117,14 +117,15 @@ PECCI_HRIS/
 │   ├── RecurringDeductionService     # Auto-generates deductions from schedules
 │   └── LeaveCreditRefreshJob         # Background job: annual leave credit refresh
 ├── ViewModels/              # View models for all forms & displays
-├── Views/                   # 55+ Razor views
+├── Views/                   # 60+ Razor views
 │   ├── Account/
 │   ├── Attendance/          # Index, Scanner, Adjust, Summary
 │   ├── Deduction/           # Index, Create, Edit
-│   ├── Dashboard/
+│   ├── Dashboard/           # Index (with 4 charts)
 │   ├── Employee/
 │   ├── Leave/
-│   ├── Payroll/
+│   ├── Payroll/             # Index, Compute, Payslips, ThirteenthMonth, ThirteenthMonthResult
+│   ├── RecurringDeduction/  # Index, Create, Edit
 │   ├── Reports/
 │   ├── Settings/
 │   └── Shared/              # _Layout.cshtml, _ValidationScriptsPartial
@@ -556,7 +557,32 @@ HR cancels → Status: Cancelled  (manual, before payroll runs)
 | Compute (GET) | GET | HR Admin, HR Staff | Computation parameters form |
 | Compute (POST) | POST | HR Admin, HR Staff | Run payroll computation |
 | Payslips | GET | HR Admin, HR Staff | View payslips |
+| DownloadPdf | GET | HR Admin, HR Staff | Download single payslip PDF |
+| DownloadAllPdf | GET | HR Admin, HR Staff | Download all payslips as one PDF |
 | Finalize | POST | HR Admin | Finalize payroll record |
+| ThirteenthMonth (GET) | GET | HR Admin, HR Staff | 13th month pay form |
+| ThirteenthMonth (POST) | POST | HR Admin, HR Staff | Compute 13th month pay |
+| DownloadThirteenthMonthExcel | GET | HR Admin, HR Staff | Export 13th month to Excel |
+
+**13th Month Pay (PD 851):**
+- Formula: `Total Basic Salary Earned in Year ÷ 12`
+- Based on all **finalized** payroll records for the selected calendar year
+- Tax-exempt up to **₱90,000** per TRAIN Law (RA 10963)
+- Must be paid on or before **December 24** of each year
+- Only employees with at least 1 month of finalized payroll are included
+
+### 5.7 Dashboard Module
+
+**Controller:** `DashboardController`
+
+The dashboard displays real-time statistics and 4 charts:
+
+| Chart | Type | Data Source |
+|---|---|---|
+| Today's Attendance | Donut | AttendanceRecords (today) |
+| Headcount by Department | Bar | Employees grouped by Department |
+| Monthly Payroll Cost Trend | Line | PayrollRecords (last 6 months, finalized) |
+| Leave Utilization | Horizontal Bar | LeaveCredits (current year, used vs remaining) |
 
 **Full Computation Steps:**
 1. Determine period dates from cutoff selection (1–15 or 16–30)
@@ -927,18 +953,20 @@ Returns computed late threshold for live preview in the Settings UI.
 
 ## 12. Known Issues & Limitations
 
-### Fully implemented
-1. **PDF Payslip Export** — iText7 generates single and multi-page PDFs. Download buttons on the Payslips page (`DownloadPdf`, `DownloadAllPdf`). Includes PECCI logo watermark.
-2. **Excel Report Export** — ClosedXML exports all 4 report types (Employee List, Attendance Summary, Leave Summary, Payroll Summary). Export buttons on each report page.
-3. **Recurring Deductions** — `RecurringDeductionSchedule` model and `RecurringDeductionService` implemented. Schedules auto-generate `EmployeeDeduction` entries per cutoff. UI for managing schedules is planned.
-4. **Leave Credit Background Refresh** — `LeaveCreditRefreshJob` runs 5 seconds after startup. Only allocates if no credits exist for the current year — no performance impact on normal restarts.
+### Fully implemented ✅
+1. **PDF Payslip Export** — iText7 generates single and multi-page PDFs with PECCI logo watermark. Download buttons on Payslips page.
+2. **Excel Report Export** — ClosedXML exports all 4 report types + 13th Month Pay.
+3. **Recurring Deductions** — `RecurringDeductionSchedule` model, service, controller, and views fully implemented. HR can manage schedules and generate deductions per cutoff.
+4. **Leave Credit Background Refresh** — `LeaveCreditRefreshJob` runs 5 seconds after startup, only allocates if no credits exist for the current year.
+5. **13th Month Pay (PD 851)** — Compute per year, full breakdown, Excel export, tax-exempt calculation per TRAIN Law.
+6. **Dashboard Charts** — Headcount by Department, Monthly Payroll Cost Trend, Leave Utilization.
+7. **Employee Deactivation** — HR Admin can deactivate employees with reason from the Profile page.
 
 ### Not yet implemented
-5. **Recurring Deduction UI** — The `RecurringDeductionService` and model are complete but there is no controller or views for HR to manage recurring schedules. Must be done via direct DB entry for now.
-6. **Email Notifications** — Leave approval/rejection notifications via email are not in this version.
-7. **Biometric Device Integration** — Time In/Out is web-based. The Scanner Terminal supports barcode/RFID via keyboard-wedge scanners. Native biometric device SDK integration is out of scope.
-8. **Holiday Calendar** — Regular and special Philippine holidays must be manually marked in attendance records. An automated holiday calendar (based on Proclamation list) is planned.
-9. **Night Differential Auto-Computation** — Night differential rate is defined in settings but not automatically applied during payroll. Manual entry via `OtherEarnings` is required for now.
+8. **Email Notifications** — Leave approval/rejection notifications via email are not in this version.
+9. **Biometric Device Integration** — Time In/Out is web-based. The Scanner Terminal supports barcode/RFID via keyboard-wedge scanners. Native biometric device SDK integration is out of scope.
+10. **Holiday Calendar Auto-Detection** — Holidays are manually entered. An automated Philippine holiday calendar (based on Proclamation list) is planned.
+11. **Night Differential Auto-Computation** — Night differential rate is defined in settings but not automatically applied during payroll. Manual entry via `OtherEarnings` is required for now.
 
 ---
 
