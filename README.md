@@ -149,7 +149,7 @@ dotnet restore
 ```bash
 dotnet ef database update
 ```
-This creates the database, all 14 tables, and seeds default data (roles, departments, leave types, system settings).
+This creates the database, all tables, and seeds default data (roles, departments, leave types, system settings).
 
 ### Step 5 — Run
 ```bash
@@ -158,12 +158,34 @@ dotnet run
 Navigate to **http://localhost:5000**
 
 ### Step 6 — Login
-| Field | Value |
-|---|---|
-| Username | `admin` |
-| Password | `Admin@123` |
 
-> ⚠️ Change the admin password immediately after first login.
+**Default admin:**
+
+| Username | Password |
+|---|---|
+| `admin` | `Admin@123` |
+
+> ⚠️ Change the admin password after first login.
+
+---
+
+## 🧪 Test Accounts
+
+After running the seed SQL (`Database/01_Seed_Data.sql`), these accounts are available for testing across all departments. Password for all: **`Test@1234`**
+
+| Username | Role | Department |
+|---|---|---|
+| `admin` | HR Admin | — |
+| `mreyes` | HR Staff | Human Resources |
+| `jdelacruz` | Employee | Human Resources |
+| `agarcia` | Manager | Finance & Accounting |
+| `psantos` | Employee | Finance & Accounting |
+| `rcastillo` | Manager | Operations |
+| `gfernandez` | Employee | Operations |
+| `mpascual` | Manager | Marketing |
+| `nsoriano` | Employee | Marketing |
+| `vtan` | Manager | Auditing |
+| `cnavarro` | Employee | Auditing |
 
 ---
 
