@@ -184,11 +184,72 @@
     &mdash; PECCI HRIS v1.0.0
 </div>
 
+<!-- ── Second row: 3 new charts ───────────────────────────────────────────── -->
+<div class="row g-3 mt-1">
+
+    <!-- Headcount by Department -->
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="fas fa-building me-1"></i> Headcount by Department
+            </div>
+            <div class="card-body">
+                <canvas id="headcountChart" height="220"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Payroll Cost Trend -->
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="fas fa-chart-line me-1"></i> Payroll Cost Trend
+                <span class="text-muted small ms-1">(last 6 months)</span>
+            </div>
+            <div class="card-body">
+                @if (Model.MonthlyPayrollCosts.Any())
+                {
+                    <canvas id="payrollTrendChart" height="220"></canvas>
+                }
+                else
+                {
+                    <div class="text-center text-muted py-5 small">
+                        <i class="fas fa-chart-line fa-2x mb-2 d-block opacity-25"></i>
+                        No finalized payroll data yet.
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Leave Utilization -->
+    <div class="col-md-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="fas fa-calendar-check me-1"></i> Leave Utilization (@DateTime.Today.Year)
+            </div>
+            <div class="card-body">
+                @if (Model.LeaveUtilization.Any())
+                {
+                    <canvas id="leaveChart" height="220"></canvas>
+                }
+                else
+                {
+                    <div class="text-center text-muted py-5 small">
+                        <i class="fas fa-calendar-check fa-2x mb-2 d-block opacity-25"></i>
+                        No leave data yet.
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 <script>
-    const ctx = document.getElementById('attendanceChart').getContext('2d');
-    new Chart(ctx, {
+    // ── Attendance donut chart ────────────────────────────────────────────────
+    new Chart(document.getElementById('attendanceChart').getContext('2d'), {
         type: 'doughnut',
         data: {
             labels: ['Present', 'Late', 'Absent', 'On Leave'],
@@ -196,8 +257,7 @@
                 data: [@Model.AttendanceSummary.Present, @Model.AttendanceSummary.Late,
                        @Model.AttendanceSummary.Absent, @Model.AttendanceSummary.OnLeave],
                 backgroundColor: ['#28a745','#ffc107','#dc3545','#17a2b8'],
-                borderWidth: 2,
-                borderColor: '#fff'
+                borderWidth: 2, borderColor: '#fff'
             }]
         },
         options: {
@@ -208,5 +268,102 @@
             }
         }
     });
+
+    // ── Headcount by department bar chart ────────────────────────────────────
+    new Chart(document.getElementById('headcountChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: [@Html.Raw(string.Join(",", Model.DepartmentHeadcounts.Select(d => $"\"{d.DepartmentName}\"")))],
+            datasets: [{
+                label: 'Employees',
+                data: [@string.Join(",", Model.DepartmentHeadcounts.Select(d => d.Count))],
+                backgroundColor: '#2E7D32',
+                borderRadius: 6,
+                borderSkipped: false
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#e8f5e9' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // ── Monthly payroll cost trend line chart ─────────────────────────────────
+    @if (Model.MonthlyPayrollCosts.Any())
+    {
+        <text>
+    new Chart(document.getElementById('payrollTrendChart').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: [@Html.Raw(string.Join(",", Model.MonthlyPayrollCosts.Select(m => $"\"{m.MonthLabel}\"")))],
+            datasets: [{
+                label: 'Net Pay (₱)',
+                data: [@string.Join(",", Model.MonthlyPayrollCosts.Select(m => m.TotalNet))],
+                borderColor: '#2E7D32',
+                backgroundColor: 'rgba(46,125,50,0.08)',
+                borderWidth: 2.5,
+                pointBackgroundColor: '#2E7D32',
+                pointRadius: 4,
+                fill: true,
+                tension: 0.35
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false },
+                tooltip: { callbacks: { label: ctx => ` ₱${ctx.raw.toLocaleString()}` } }
+            },
+            scales: {
+                y: { beginAtZero: false, grid: { color: '#e8f5e9' },
+                     ticks: { callback: v => '₱' + (v/1000).toFixed(0) + 'k' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+        </text>
+    }
+
+    // ── Leave utilization horizontal bar chart ────────────────────────────────
+    @if (Model.LeaveUtilization.Any())
+    {
+        <text>
+    new Chart(document.getElementById('leaveChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: [@Html.Raw(string.Join(",", Model.LeaveUtilization.Select(l => $"\"{l.LeaveTypeName}\"")))],
+            datasets: [
+                {
+                    label: 'Used',
+                    data: [@string.Join(",", Model.LeaveUtilization.Select(l => l.TotalUsed))],
+                    backgroundColor: '#E8521A',
+                    borderRadius: 4
+                },
+                {
+                    label: 'Remaining',
+                    data: [@string.Join(",", Model.LeaveUtilization.Select(l => l.TotalAllocated - l.TotalUsed))],
+                    backgroundColor: '#E8F5E9',
+                    borderRadius: 4
+                }
+            ]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } },
+                tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.raw} days` } }
+            },
+            scales: {
+                x: { stacked: true, beginAtZero: true, grid: { color: '#e8f5e9' } },
+                y: { stacked: true, grid: { display: false } }
+            }
+        }
+    });
+        </text>
+    }
 </script>
 }

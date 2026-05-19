@@ -1,0 +1,143 @@
+@model PECCI_HRIS.ViewModels.ThirteenthMonthResultViewModel
+@{
+    ViewData["Title"] = $"13th Month Pay — {Model.Year}";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="page-header no-print">
+    <div>
+        <h1><i class="fas fa-gift me-2"></i>13th Month Pay — @Model.Year</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Dashboard" asp-action="Index">Dashboard</a></li>
+                <li class="breadcrumb-item"><a asp-action="Index">Payroll</a></li>
+                <li class="breadcrumb-item"><a asp-action="ThirteenthMonth">13th Month Pay</a></li>
+                <li class="breadcrumb-item active">Results</li>
+            </ol>
+        </nav>
+    </div>
+    <div class="d-flex gap-2 no-print">
+        <button onclick="window.print()" class="btn btn-outline-secondary">
+            <i class="fas fa-print me-1"></i> Print
+        </button>
+        <a asp-action="DownloadThirteenthMonthExcel"
+           asp-route-year="@Model.Year"
+           class="btn btn-success">
+            <i class="fas fa-file-excel me-1"></i> Export Excel
+        </a>
+    </div>
+</div>
+
+<!-- Summary cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card green">
+            <div class="stat-icon"><i class="fas fa-users"></i></div>
+            <div class="stat-value">@Model.TotalEmployees</div>
+            <div class="stat-label">Entitled Employees</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card orange">
+            <div class="stat-icon"><i class="fas fa-gift"></i></div>
+            <div class="stat-value" style="font-size:1.4rem;">₱@Model.TotalPayout.ToString("N2")</div>
+            <div class="stat-label">Total 13th Month Payout</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card teal">
+            <div class="stat-icon"><i class="fas fa-calendar-alt"></i></div>
+            <div class="stat-value">@Model.Year</div>
+            <div class="stat-label">Calendar Year</div>
+        </div>
+    </div>
+</div>
+
+<!-- Print header (hidden on screen) -->
+<div class="text-center mb-3 print-only" style="display:none;">
+    <h4 class="fw-bold">PECCI Multipurpose Cooperative</h4>
+    <h5>13th Month Pay Computation — @Model.Year</h5>
+    <div class="text-muted small">Generated: @DateTime.Now.ToString("MMMM dd, yyyy hh:mm tt")</div>
+    <div class="small">Basis: PD 851 | Tax-exempt up to ₱90,000 (TRAIN Law)</div>
+</div>
+
+<!-- Results table -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-list me-1"></i> 13th Month Pay Breakdown</span>
+        <span class="badge" style="background:var(--pecci-green);">@Model.TotalEmployees employee(s)</span>
+    </div>
+    <div class="card-body p-0">
+        @if (!Model.Rows.Any())
+        {
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-gift fa-2x mb-2 d-block opacity-25"></i>
+                No finalized payroll records found for @Model.Year.
+                <div class="small mt-1">Finalize payroll records first before computing 13th month pay.</div>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-pecci mb-0">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Department</th>
+                            <th class="text-center">Months Worked</th>
+                            <th class="text-end">Total Basic Earned</th>
+                            <th class="text-end" style="color:var(--pecci-green);">13th Month Pay</th>
+                            <th class="text-end">Tax-Exempt</th>
+                            <th class="text-end">Taxable</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in Model.Rows)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">@row.EmployeeName</div>
+                                    <div class="text-muted small">@row.EmployeeNo — @row.Position</div>
+                                </td>
+                                <td class="small">@row.Department</td>
+                                <td class="text-center">
+                                    <span class="badge @(row.MonthsWorked >= 12 ? "bg-success" : "bg-warning text-dark")">
+                                        @row.MonthsWorked / 12
+                                    </span>
+                                </td>
+                                <td class="text-end">₱@row.TotalBasicEarned.ToString("N2")</td>
+                                <td class="text-end fw-bold" style="color:var(--pecci-green);">
+                                    ₱@row.ThirteenthMonthPay.ToString("N2")
+                                </td>
+                                <td class="text-end text-success small">₱@row.TaxExemptAmount.ToString("N2")</td>
+                                <td class="text-end small @(row.TaxableAmount > 0 ? "text-danger" : "text-muted")">
+                                    @(row.TaxableAmount > 0 ? $"₱{row.TaxableAmount:N2}" : "—")
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot>
+                        <tr style="background:var(--pecci-green-pale);font-weight:700;border-top:2px solid var(--pecci-green);">
+                            <td colspan="4" class="text-end">Total Payout:</td>
+                            <td class="text-end" style="color:var(--pecci-green);">₱@Model.TotalPayout.ToString("N2")</td>
+                            <td colspan="2"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <div class="px-3 py-2 text-muted" style="font-size:0.72rem;border-top:1px solid var(--pecci-border);">
+                <i class="fas fa-info-circle me-1"></i>
+                Formula: Total Basic Salary Earned ÷ 12 &nbsp;|&nbsp;
+                Tax-exempt up to ₱90,000 per TRAIN Law (RA 10963) &nbsp;|&nbsp;
+                Basis: Presidential Decree No. 851
+            </div>
+        }
+    </div>
+</div>
+
+<div class="mt-3 text-center text-muted no-print" style="font-size:0.72rem;">
+    <i class="fas fa-code me-1"></i>
+    Developed by <strong>UST Interns</strong>:
+    Arkin Reinier Aguilar &bull; Maxenne De Guzman &bull; Bernice Elyssa Soriano &bull; Emily Etea
+</div>

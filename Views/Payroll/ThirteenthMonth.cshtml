@@ -1,0 +1,78 @@
+@model PECCI_HRIS.ViewModels.ThirteenthMonthComputeViewModel
+@{
+    ViewData["Title"] = "13th Month Pay";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-gift me-2"></i>13th Month Pay</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Dashboard" asp-action="Index">Dashboard</a></li>
+                <li class="breadcrumb-item"><a asp-action="Index">Payroll</a></li>
+                <li class="breadcrumb-item active">13th Month Pay</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6">
+
+        <!-- Legal basis info box -->
+        <div class="alert mb-4" style="background:var(--pecci-green-pale);border:1px solid var(--pecci-green);color:var(--pecci-green-dark);">
+            <h6 class="fw-bold mb-2"><i class="fas fa-balance-scale me-1"></i> Legal Basis — PD 851</h6>
+            <ul class="mb-0 small">
+                <li>All rank-and-file employees who worked <strong>at least 1 month</strong> in the calendar year are entitled.</li>
+                <li>Formula: <strong>Total Basic Salary Earned in the Year ÷ 12</strong></li>
+                <li>Must be paid on or before <strong>December 24</strong> of each year.</li>
+                <li>Tax-exempt up to <strong>₱90,000</strong> per TRAIN Law (RA 10963).</li>
+                <li>Computation is based on <strong>finalized payroll records</strong> for the selected year.</li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-calculator me-1"></i> Computation Parameters
+            </div>
+            <div class="card-body">
+                <form asp-action="ThirteenthMonth" method="post">
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger small" role="alert"></div>
+
+                    <div class="mb-4">
+                        <label asp-for="Year" class="form-label fw-semibold">
+                            Calendar Year <span class="text-danger">*</span>
+                        </label>
+                        <input asp-for="Year" class="form-control" type="number" min="2020" max="2099" />
+                        <div class="form-text">13th month pay is computed per calendar year (Jan 1 – Dec 31).</div>
+                        <span asp-validation-for="Year" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="EmployeeID" class="form-label fw-semibold">
+                            Employee <span class="text-muted small">(optional — leave blank for all)</span>
+                        </label>
+                        <select asp-for="EmployeeID" asp-items="Model.Employees" class="form-select">
+                            <option value="">All Active Employees</option>
+                        </select>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-pecci-primary">
+                            <i class="fas fa-calculator me-1"></i> Compute
+                        </button>
+                        <a asp-action="Index" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+}

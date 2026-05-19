@@ -321,5 +321,84 @@ namespace PECCI_HRIS.Services
             wb.SaveAs(ms);
             return ms.ToArray();
         }
+
+        // ── 13th Month Pay Export ─────────────────────────────────────────────────
+        /// <summary>
+        /// Exports the 13th month pay computation result to Excel.
+        /// Includes employee details, total basic earned, months worked,
+        /// 13th month amount, and tax-exempt breakdown per TRAIN Law.
+        /// </summary>
+        public byte[] ExportThirteenthMonth(PECCI_HRIS.ViewModels.ThirteenthMonthResultViewModel result)
+        {
+            using var wb = new XLWorkbook();
+            var ws = wb.AddWorksheet("13th Month Pay");
+
+            ws.Cell(1, 1).Value = CompanyName;
+            ws.Cell(1, 1).Style.Font.Bold = true;
+            ws.Cell(1, 1).Style.Font.FontSize = 14;
+            ws.Cell(2, 1).Value = $"13th Month Pay — {result.Year}";
+            ws.Cell(2, 1).Style.Font.Bold = true;
+            ws.Cell(2, 1).Style.Font.FontSize = 12;
+            ws.Cell(3, 1).Value = $"Generated: {DateTime.Now:MMMM dd, yyyy hh:mm tt}";
+            ws.Cell(3, 1).Style.Font.Italic = true;
+            ws.Cell(4, 1).Value = "Basis: PD 851 — Total Basic Salary Earned ÷ 12 | Tax-exempt up to ₱90,000 (TRAIN Law)";
+            ws.Cell(4, 1).Style.Font.Italic = true;
+            ws.Cell(4, 1).Style.Font.FontColor = XLColor.DarkGray;
+
+            int headerRow = 6;
+            string[] headers = {
+                "Emp. No.", "Full Name", "Department", "Position",
+                "Months Worked", "Total Basic Earned",
+                "13th Month Pay", "Tax-Exempt (≤₱90K)", "Taxable Amount"
+            };
+
+            for (int i = 0; i < headers.Length; i++)
+            {
+                var cell = ws.Cell(headerRow, i + 1);
+                cell.Value = headers[i];
+                cell.Style.Font.Bold = true;
+                cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#2d6a4f");
+                cell.Style.Font.FontColor = XLColor.White;
+                cell.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            }
+
+            int row = headerRow + 1;
+            foreach (var r in result.Rows)
+            {
+                ws.Cell(row, 1).Value = r.EmployeeNo;
+                ws.Cell(row, 2).Value = r.EmployeeName;
+                ws.Cell(row, 3).Value = r.Department;
+                ws.Cell(row, 4).Value = r.Position;
+                ws.Cell(row, 5).Value = r.MonthsWorked;
+                ws.Cell(row, 6).Value = (double)r.TotalBasicEarned;
+                ws.Cell(row, 7).Value = (double)r.ThirteenthMonthPay;
+                ws.Cell(row, 8).Value = (double)r.TaxExemptAmount;
+                ws.Cell(row, 9).Value = (double)r.TaxableAmount;
+
+                // Format currency columns
+                for (int col = 6; col <= 9; col++)
+                    ws.Cell(row, col).Style.NumberFormat.Format = "#,##0.00";
+
+                if (row % 2 == 0)
+                    ws.Row(row).Style.Fill.BackgroundColor = XLColor.FromHtml("#f8f9fa");
+
+                row++;
+            }
+
+            // Totals row
+            ws.Cell(row, 1).Value = "TOTAL";
+            ws.Cell(row, 7).Value = (double)result.TotalPayout;
+            ws.Cell(row, 7).Style.NumberFormat.Format = "#,##0.00";
+            ws.Row(row).Style.Font.Bold = true;
+            ws.Row(row).Style.Fill.BackgroundColor = XLColor.FromHtml("#d8f3dc");
+
+            ws.Columns().AdjustToContents();
+            ws.Range(headerRow, 1, row, headers.Length)
+              .Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            ws.Range(headerRow, 1, row, headers.Length)
+              .Style.Border.InsideBorder = XLBorderStyleValues.Hair;
+
+            return ToBytes(wb);
+        }
     }
 }
