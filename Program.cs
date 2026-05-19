@@ -66,7 +66,8 @@ if (app.Environment.IsDevelopment())
 }
 else
 {
-    app.UseExceptionHandler("/Home/Error");
+    // In production, redirect to login on unhandled errors
+    app.UseExceptionHandler("/Account/Login");
     app.UseHsts();
 }
 
