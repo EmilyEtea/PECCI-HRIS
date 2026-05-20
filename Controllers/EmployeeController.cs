@@ -27,6 +27,13 @@ namespace PECCI_HRIS.Controllers
 
         public async Task<IActionResult> Index(string? search, string? status, int? departmentId)
         {
+            // Employees should not see the full employee list — redirect to own profile
+            if (GetCurrentRole() == "Employee")
+            {
+                int empId = int.Parse(User.FindFirst("EmployeeID")?.Value ?? "0");
+                if (empId > 0) return RedirectToAction(nameof(Profile), new { id = empId });
+                return RedirectToAction("Index", "Dashboard");
+            }
             var query = _context.Employees
                 .Include(e => e.Department)
                 .Include(e => e.Position)

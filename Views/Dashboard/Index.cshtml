@@ -3,6 +3,11 @@
     ViewData["Title"] = "Dashboard";
     Layout = "~/Views/Shared/_Layout.cshtml";
     var today = DateTime.Today;
+    var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "";
+    var isHR = role == "HR Admin" || role == "HR Staff";
+    var isEmployee = role == "Employee";
+    var empIdClaim = User.FindFirst("EmployeeID")?.Value ?? "0";
+    int currentEmpId = int.Parse(empIdClaim);
 }
 
 <div class="page-header">
@@ -16,227 +21,311 @@
     </div>
 </div>
 
-<!-- ── Stat Cards ──────────────────────────────────────────────────────────── -->
-<div class="row g-3 mb-4">
-    <div class="col-6 col-md-4 col-xl-2">
-        <div class="stat-card green">
-            <div class="stat-icon"><i class="fas fa-users"></i></div>
-            <div class="stat-value">@Model.TotalEmployees</div>
-            <div class="stat-label">Active Employees</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-4 col-xl-2">
-        <div class="stat-card teal">
-            <div class="stat-icon"><i class="fas fa-user-check"></i></div>
-            <div class="stat-value">@Model.PresentToday</div>
-            <div class="stat-label">Present Today</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-4 col-xl-2">
-        <div class="stat-card orange">
-            <div class="stat-icon"><i class="fas fa-user-clock"></i></div>
-            <div class="stat-value">@Model.LateToday</div>
-            <div class="stat-label">Late Today</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-4 col-xl-2">
-        <div class="stat-card blue">
-            <div class="stat-icon"><i class="fas fa-calendar-minus"></i></div>
-            <div class="stat-value">@Model.OnLeaveToday</div>
-            <div class="stat-label">On Leave Today</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-4 col-xl-2">
-        <div class="stat-card red">
-            <div class="stat-icon"><i class="fas fa-hourglass-half"></i></div>
-            <div class="stat-value">@Model.PendingLeaves</div>
-            <div class="stat-label">Pending Leaves</div>
-        </div>
-    </div>
-    <div class="col-6 col-md-4 col-xl-2">
-        <div class="stat-card gold">
-            <div class="stat-icon"><i class="fas fa-building"></i></div>
-            <div class="stat-value">@Model.TotalDepartments</div>
-            <div class="stat-label">Departments</div>
-        </div>
-    </div>
-</div>
-
-<div class="row g-3">
-    <!-- Attendance Donut -->
-    <div class="col-md-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <i class="fas fa-chart-pie me-1"></i> Today's Attendance
+@if (isEmployee)
+{
+    <!-- ── EMPLOYEE VIEW ─────────────────────────────────────────────────────── -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="stat-card green">
+                <div class="stat-icon"><i class="fas fa-coins"></i></div>
+                <div class="stat-value">@Model.PendingLeaves</div>
+                <div class="stat-label">My Pending Leaves</div>
             </div>
-            <div class="card-body d-flex flex-column align-items-center justify-content-center">
-                <canvas id="attendanceChart" width="200" height="200"></canvas>
-                <div class="mt-3 w-100">
-                    <div class="d-flex justify-content-between small mb-1">
-                        <span><span class="badge bg-success me-1">&nbsp;</span>Present</span>
-                        <strong>@Model.AttendanceSummary.Present</strong>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card teal">
+                <div class="stat-icon"><i class="fas fa-user-check"></i></div>
+                <div class="stat-value">@Model.PresentToday</div>
+                <div class="stat-label">Present Today (Company)</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card orange">
+                <div class="stat-icon"><i class="fas fa-calendar-minus"></i></div>
+                <div class="stat-value">@Model.OnLeaveToday</div>
+                <div class="stat-label">On Leave Today</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card blue">
+                <div class="stat-icon"><i class="fas fa-birthday-cake"></i></div>
+                <div class="stat-value">@Model.UpcomingBirthdays.Count</div>
+                <div class="stat-label">Upcoming Birthdays</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <!-- Quick links for employee -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header"><i class="fas fa-bolt me-1"></i> Quick Actions</div>
+                <div class="card-body d-flex flex-column gap-2">
+                    <a asp-controller="Attendance" asp-action="Index" class="btn btn-pecci-primary">
+                        <i class="fas fa-clock me-2"></i> My Attendance
+                    </a>
+                    <a asp-controller="Leave" asp-action="Apply" class="btn btn-outline-secondary">
+                        <i class="fas fa-calendar-plus me-2"></i> Apply for Leave
+                    </a>
+                    <a asp-controller="Leave" asp-action="Credits" class="btn btn-outline-secondary">
+                        <i class="fas fa-coins me-2"></i> My Leave Credits
+                    </a>
+                    <a asp-controller="Payroll" asp-action="MyPayslips" class="btn btn-outline-secondary">
+                        <i class="fas fa-file-invoice-dollar me-2"></i> My Payslips
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upcoming Birthdays -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header"><i class="fas fa-birthday-cake me-1"></i> Upcoming Birthdays</div>
+                <div class="card-body p-0">
+                    @if (Model.UpcomingBirthdays.Any())
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var b in Model.UpcomingBirthdays)
+                            {
+                                <li class="list-group-item py-2 px-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div style="width:36px;height:36px;border-radius:50%;background:var(--pecci-green-pale);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">🎂</div>
+                                        <div>
+                                            <div class="small fw-semibold">@b.EmployeeName</div>
+                                            <div class="text-muted" style="font-size:0.72rem;">@b.Department &bull; @b.BirthDate.ToString("MMMM dd")</div>
+                                        </div>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-4 small">No birthdays in the next 7 days</div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Leave utilization (own) -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header"><i class="fas fa-calendar-check me-1"></i> Leave Utilization (@today.Year)</div>
+                <div class="card-body">
+                    @if (Model.LeaveUtilization.Any())
+                    {
+                        <canvas id="leaveChart" height="220"></canvas>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-5 small">No leave data yet.</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <!-- ── HR ADMIN / HR STAFF / MANAGER VIEW ────────────────────────────────── -->
+
+    <!-- Stat Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="stat-card green">
+                <div class="stat-icon"><i class="fas fa-users"></i></div>
+                <div class="stat-value">@Model.TotalEmployees</div>
+                <div class="stat-label">Active Employees</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="stat-card teal">
+                <div class="stat-icon"><i class="fas fa-user-check"></i></div>
+                <div class="stat-value">@Model.PresentToday</div>
+                <div class="stat-label">Present Today</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="stat-card orange">
+                <div class="stat-icon"><i class="fas fa-user-clock"></i></div>
+                <div class="stat-value">@Model.LateToday</div>
+                <div class="stat-label">Late Today</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="stat-card blue">
+                <div class="stat-icon"><i class="fas fa-calendar-minus"></i></div>
+                <div class="stat-value">@Model.OnLeaveToday</div>
+                <div class="stat-label">On Leave Today</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="stat-card red">
+                <div class="stat-icon"><i class="fas fa-hourglass-half"></i></div>
+                <div class="stat-value">@Model.PendingLeaves</div>
+                <div class="stat-label">Pending Leaves</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-4 col-xl-2">
+            <div class="stat-card gold">
+                <div class="stat-icon"><i class="fas fa-building"></i></div>
+                <div class="stat-value">@Model.TotalDepartments</div>
+                <div class="stat-label">Departments</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <!-- Attendance Donut -->
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header"><i class="fas fa-chart-pie me-1"></i> Today's Attendance</div>
+                <div class="card-body d-flex flex-column align-items-center justify-content-center">
+                    <canvas id="attendanceChart" width="200" height="200"></canvas>
+                    <div class="mt-3 w-100">
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span><span class="badge bg-success me-1">&nbsp;</span>Present</span>
+                            <strong>@Model.AttendanceSummary.Present</strong>
+                        </div>
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span><span class="badge bg-warning me-1">&nbsp;</span>Late</span>
+                            <strong>@Model.AttendanceSummary.Late</strong>
+                        </div>
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span><span class="badge bg-danger me-1">&nbsp;</span>Absent</span>
+                            <strong>@Model.AttendanceSummary.Absent</strong>
+                        </div>
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span><span class="badge bg-info me-1">&nbsp;</span>On Leave</span>
+                            <strong>@Model.AttendanceSummary.OnLeave</strong>
+                        </div>
                     </div>
-                    <div class="d-flex justify-content-between small mb-1">
-                        <span><span class="badge bg-warning me-1">&nbsp;</span>Late</span>
-                        <strong>@Model.AttendanceSummary.Late</strong>
-                    </div>
-                    <div class="d-flex justify-content-between small mb-1">
-                        <span><span class="badge bg-danger me-1">&nbsp;</span>Absent</span>
-                        <strong>@Model.AttendanceSummary.Absent</strong>
-                    </div>
-                    <div class="d-flex justify-content-between small mb-1">
-                        <span><span class="badge bg-info me-1">&nbsp;</span>On Leave</span>
-                        <strong>@Model.AttendanceSummary.OnLeave</strong>
-                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="col-md-5">
+            <div class="card h-100">
+                <div class="card-header"><i class="fas fa-history me-1"></i> Recent Activity</div>
+                <div class="card-body p-0" style="overflow-y:auto;max-height:320px;">
+                    <table class="table table-sm mb-0">
+                        <tbody>
+                            @foreach (var a in Model.RecentActivities)
+                            {
+                                <tr>
+                                    <td class="ps-3 py-2" style="width:32px;">
+                                        @{
+                                            var icon = a.Action switch {
+                                                "Login"   => "fa-sign-in-alt text-success",
+                                                "Logout"  => "fa-sign-out-alt text-muted",
+                                                "TimeIn"  => "fa-clock text-primary",
+                                                "TimeOut" => "fa-clock text-secondary",
+                                                "Update"  => "fa-edit text-warning",
+                                                "Create"  => "fa-plus text-success",
+                                                "Delete"  => "fa-trash text-danger",
+                                                _         => "fa-circle text-muted"
+                                            };
+                                        }
+                                        <i class="fas @icon"></i>
+                                    </td>
+                                    <td class="py-2">
+                                        <div class="small fw-semibold">@a.Username <span class="text-muted fw-normal">— @a.Module</span></div>
+                                        <div class="text-muted" style="font-size:0.72rem;">@a.Description</div>
+                                    </td>
+                                    <td class="pe-3 py-2 text-muted text-end" style="font-size:0.7rem;white-space:nowrap;">
+                                        @a.Timestamp.ToString("MM/dd HH:mm")
+                                    </td>
+                                </tr>
+                            }
+                            @if (!Model.RecentActivities.Any())
+                            {
+                                <tr><td colspan="3" class="text-center text-muted py-4">No recent activity</td></tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Upcoming Birthdays -->
+        <div class="col-md-3">
+            <div class="card h-100">
+                <div class="card-header"><i class="fas fa-birthday-cake me-1"></i> Upcoming Birthdays</div>
+                <div class="card-body p-0">
+                    @if (Model.UpcomingBirthdays.Any())
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var b in Model.UpcomingBirthdays)
+                            {
+                                <li class="list-group-item py-2 px-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div style="width:36px;height:36px;border-radius:50%;background:var(--pecci-gold);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">🎂</div>
+                                        <div>
+                                            <div class="small fw-semibold">@b.EmployeeName</div>
+                                            <div class="text-muted" style="font-size:0.72rem;">@b.Department &bull; @b.BirthDate.ToString("MMMM dd")</div>
+                                        </div>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-4 small">No birthdays in the next 7 days</div>
+                    }
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Recent Activity -->
-    <div class="col-md-5">
-        <div class="card h-100">
-            <div class="card-header">
-                <i class="fas fa-history me-1"></i> Recent Activity
+    <!-- Second row: 3 charts (HR/Manager only) -->
+    <div class="row g-3 mt-1">
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header"><i class="fas fa-building me-1"></i> Headcount by Department</div>
+                <div class="card-body"><canvas id="headcountChart" height="220"></canvas></div>
             </div>
-            <div class="card-body p-0" style="overflow-y:auto;max-height:320px;">
-                <table class="table table-sm mb-0">
-                    <tbody>
-                        @foreach (var a in Model.RecentActivities)
-                        {
-                            <tr>
-                                <td class="ps-3 py-2" style="width:32px;">
-                                    @{
-                                        var icon = a.Action switch {
-                                            "Login"  => "fa-sign-in-alt text-success",
-                                            "Logout" => "fa-sign-out-alt text-muted",
-                                            "TimeIn" => "fa-clock text-primary",
-                                            "TimeOut"=> "fa-clock text-secondary",
-                                            "Update" => "fa-edit text-warning",
-                                            "Create" => "fa-plus text-success",
-                                            "Delete" => "fa-trash text-danger",
-                                            _ => "fa-circle text-muted"
-                                        };
-                                    }
-                                    <i class="fas @icon"></i>
-                                </td>
-                                <td class="py-2">
-                                    <div class="small fw-semibold">@a.Username <span class="text-muted fw-normal">— @a.Module</span></div>
-                                    <div class="text-muted" style="font-size:0.72rem;">@a.Description</div>
-                                </td>
-                                <td class="pe-3 py-2 text-muted text-end" style="font-size:0.7rem;white-space:nowrap;">
-                                    @a.Timestamp.ToString("MM/dd HH:mm")
-                                </td>
-                            </tr>
-                        }
-                        @if (!Model.RecentActivities.Any())
-                        {
-                            <tr><td colspan="3" class="text-center text-muted py-4">No recent activity</td></tr>
-                        }
-                    </tbody>
-                </table>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <i class="fas fa-chart-line me-1"></i> Payroll Cost Trend
+                    <span class="text-muted small ms-1">(last 6 months)</span>
+                </div>
+                <div class="card-body">
+                    @if (Model.MonthlyPayrollCosts.Any())
+                    {
+                        <canvas id="payrollTrendChart" height="220"></canvas>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-5 small">
+                            <i class="fas fa-chart-line fa-2x mb-2 d-block opacity-25"></i>No finalized payroll data yet.
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100">
+                <div class="card-header"><i class="fas fa-calendar-check me-1"></i> Leave Utilization (@today.Year)</div>
+                <div class="card-body">
+                    @if (Model.LeaveUtilization.Any())
+                    {
+                        <canvas id="leaveChart" height="220"></canvas>
+                    }
+                    else
+                    {
+                        <div class="text-center text-muted py-5 small">
+                            <i class="fas fa-calendar-check fa-2x mb-2 d-block opacity-25"></i>No leave data yet.
+                        </div>
+                    }
+                </div>
             </div>
         </div>
     </div>
-
-    <!-- Upcoming Birthdays -->
-    <div class="col-md-3">
-        <div class="card h-100">
-            <div class="card-header">
-                <i class="fas fa-birthday-cake me-1"></i> Upcoming Birthdays
-            </div>
-            <div class="card-body p-0">
-                @if (Model.UpcomingBirthdays.Any())
-                {
-                    <ul class="list-group list-group-flush">
-                        @foreach (var b in Model.UpcomingBirthdays)
-                        {
-                            <li class="list-group-item py-2 px-3">
-                                <div class="d-flex align-items-center gap-2">
-                                    <div style="width:36px;height:36px;border-radius:50%;background:var(--pecci-gold);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">
-                                        🎂
-                                    </div>
-                                    <div>
-                                        <div class="small fw-semibold">@b.EmployeeName</div>
-                                        <div class="text-muted" style="font-size:0.72rem;">
-                                            @b.Department &bull; @b.BirthDate.ToString("MMMM dd")
-                                        </div>
-                                    </div>
-                                </div>
-                            </li>
-                        }
-                    </ul>
-                }
-                else
-                {
-                    <div class="text-center text-muted py-4 small">No birthdays in the next 7 days</div>
-                }
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Credits Footer -->
-<!-- ── Second row: 3 new charts ───────────────────────────────────────────── -->
-<div class="row g-3 mt-1">
-
-    <!-- Headcount by Department -->
-    <div class="col-md-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <i class="fas fa-building me-1"></i> Headcount by Department
-            </div>
-            <div class="card-body">
-                <canvas id="headcountChart" height="220"></canvas>
-            </div>
-        </div>
-    </div>
-
-    <!-- Monthly Payroll Cost Trend -->
-    <div class="col-md-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <i class="fas fa-chart-line me-1"></i> Payroll Cost Trend
-                <span class="text-muted small ms-1">(last 6 months)</span>
-            </div>
-            <div class="card-body">
-                @if (Model.MonthlyPayrollCosts.Any())
-                {
-                    <canvas id="payrollTrendChart" height="220"></canvas>
-                }
-                else
-                {
-                    <div class="text-center text-muted py-5 small">
-                        <i class="fas fa-chart-line fa-2x mb-2 d-block opacity-25"></i>
-                        No finalized payroll data yet.
-                    </div>
-                }
-            </div>
-        </div>
-    </div>
-
-    <!-- Leave Utilization -->
-    <div class="col-md-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <i class="fas fa-calendar-check me-1"></i> Leave Utilization (@DateTime.Today.Year)
-            </div>
-            <div class="card-body">
-                @if (Model.LeaveUtilization.Any())
-                {
-                    <canvas id="leaveChart" height="220"></canvas>
-                }
-                else
-                {
-                    <div class="text-center text-muted py-5 small">
-                        <i class="fas fa-calendar-check fa-2x mb-2 d-block opacity-25"></i>
-                        No leave data yet.
-                    </div>
-                }
-            </div>
-        </div>
-    </div>
-</div>
+}
 
 @section Scripts {
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
