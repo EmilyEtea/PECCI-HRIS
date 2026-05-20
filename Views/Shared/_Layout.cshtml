@@ -44,7 +44,7 @@
             <i class="fas fa-tachometer-alt"></i> Dashboard
         </a>
 
-        @if (role == "HR Admin" || role == "HR Staff" || role == "Manager")
+        @if (role == "HR Admin" || role == "HR Staff")
         {
             <!-- Employee Management — HR/Manager: view + edit; HR Staff: view only enforced by controller -->
             <div class="nav-section-label">Employee</div>
@@ -59,18 +59,18 @@
             </a>
         }
 
-        @if (role == "Employee")
+        @if (role == "Employee" || role == "Manager")
         {
-            <!-- Employee: own profile only -->
+            <!-- Employee/Manager: own profile only -->
             <div class="nav-section-label">My Profile</div>
             <a asp-controller="Account" asp-action="Profile" class="@NavClass("Account","Profile")">
                 <i class="fas fa-user-circle"></i> My Profile
             </a>
         }
 
-        @if (role == "HR Admin" || role == "Manager")
+        @if (role == "HR Admin")
         {
-            <!-- Timekeeping — HR Admin and Manager only -->
+            <!-- Timekeeping — HR Admin only -->
             <div class="nav-section-label">Timekeeping</div>
             <a asp-controller="Attendance" asp-action="Index" class="@NavClass("Attendance","Index")">
                 <i class="fas fa-clock"></i> Attendance
@@ -85,7 +85,7 @@
 
         <!-- Leave -->
         <div class="nav-section-label">Leave</div>
-        @if (role == "HR Admin" || role == "HR Staff" || role == "Manager")
+        @if (role == "HR Admin" || role == "HR Staff")
         {
             <a asp-controller="Leave" asp-action="Index" class="@NavClass("Leave","Index")">
                 <i class="fas fa-calendar-minus"></i> Leave Applications
@@ -105,7 +105,7 @@
         }
         else
         {
-            <!-- Employee: own leave only -->
+            <!-- Employee/Manager: own leave only -->
             <a asp-controller="Leave" asp-action="Index" class="@NavClass("Leave","Index")">
                 <i class="fas fa-calendar-minus"></i> My Leave
             </a>
@@ -144,8 +144,8 @@
             </a>
         }
 
-        <!-- Reports — HR Admin, HR Staff, Manager only (NOT Employee) -->
-        @if (role == "HR Admin" || role == "HR Staff" || role == "Manager")
+        <!-- Reports — HR Admin and HR Staff only -->
+        @if (role == "HR Admin" || role == "HR Staff")
         {
             <div class="nav-section-label">Reports</div>
             <a asp-controller="Reports" asp-action="Index" class="@NavClass("Reports")">
