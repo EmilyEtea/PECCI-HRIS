@@ -76,6 +76,9 @@
         <a asp-controller="Leave" asp-action="Credits" class="@NavClass("Leave","Credits")">
             <i class="fas fa-coins"></i> Leave Credits
         </a>
+        <a asp-controller="Payroll" asp-action="MyPayslips" class="@NavClass("Payroll","MyPayslips")">
+            <i class="fas fa-file-invoice-dollar"></i> My Payslips
+        </a>
         @if (role == "HR Admin" || role == "HR Staff")
         {
             <a asp-controller="Leave" asp-action="Types" class="@NavClass("Leave","Types")">
@@ -182,6 +185,9 @@
                 <li><h6 class="dropdown-header">@fullName</h6></li>
                 <li><a class="dropdown-item" asp-controller="Account" asp-action="Profile">
                     <i class="fas fa-user me-2"></i> My Profile
+                </a></li>
+                <li><a class="dropdown-item" asp-controller="Account" asp-action="ChangePassword">
+                    <i class="fas fa-key me-2"></i> Change Password
                 </a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li>

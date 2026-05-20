@@ -44,6 +44,10 @@ namespace PECCI_HRIS.ViewModels
     {
         public int UserID { get; set; }
 
+        [Required, Display(Name = "Current Password")]
+        [DataType(DataType.Password)]
+        public string CurrentPassword { get; set; } = string.Empty;
+
         [Required, Display(Name = "New Password")]
         [DataType(DataType.Password)]
         [MinLength(8, ErrorMessage = "Password must be at least 8 characters.")]

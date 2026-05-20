@@ -362,16 +362,18 @@ namespace PECCI_HRIS.Controllers
         }
 
         // ── Leave Credits ─────────────────────────────────────────────────────────
-        public async Task<IActionResult> Credits(int? employeeId)
+        public async Task<IActionResult> Credits(int? employeeId, int? year)
         {
+            int currentYear = year ?? DateTime.Today.Year;
+
             int empId = GetCurrentRole() == "Employee"
                 ? int.Parse(User.FindFirst("EmployeeID")?.Value ?? "0")
                 : employeeId ?? 0;
 
             var credits = await _context.LeaveCredits
-                .Include(lc => lc.Employee)
+                .Include(lc => lc.Employee).ThenInclude(e => e!.Department)
                 .Include(lc => lc.LeaveType)
-                .Where(lc => (empId == 0 || lc.EmployeeID == empId) && lc.Year == DateTime.Today.Year)
+                .Where(lc => (empId == 0 || lc.EmployeeID == empId) && lc.Year == currentYear)
                 .OrderBy(lc => lc.Employee!.LastName)
                 .ThenBy(lc => lc.LeaveType!.LeaveTypeName)
                 .ToListAsync();
@@ -379,6 +381,7 @@ namespace PECCI_HRIS.Controllers
             ViewBag.Employees  = await _context.Employees
                 .Where(e => e.Status == "Active").OrderBy(e => e.LastName).ToListAsync();
             ViewBag.EmployeeId = empId;
+            ViewBag.Year       = currentYear;
 
             return View(credits);
         }

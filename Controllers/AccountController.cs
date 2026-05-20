@@ -114,5 +114,40 @@ namespace PECCI_HRIS.Controllers
             if (user == null) return NotFound();
             return View(user);
         }
+
+        // ── Change Password (self-service) ────────────────────────────────────────
+
+        [Authorize]
+        [HttpGet]
+        public IActionResult ChangePassword()
+        {
+            return View(new ChangePasswordViewModel { UserID = GetCurrentUserID() });
+        }
+
+        [Authorize]
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> ChangePassword(ChangePasswordViewModel vm)
+        {
+            if (!ModelState.IsValid) return View(vm);
+
+            var user = await _context.Users.FindAsync(GetCurrentUserID());
+            if (user == null) return NotFound();
+
+            // Verify current password before allowing change
+            if (!BCrypt.Net.BCrypt.Verify(vm.CurrentPassword, user.PasswordHash))
+            {
+                ModelState.AddModelError("CurrentPassword", "Current password is incorrect.");
+                return View(vm);
+            }
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(vm.NewPassword);
+            await _context.SaveChangesAsync();
+
+            await _auditService.LogAsync(GetCurrentUserID(), GetCurrentUsername(),
+                "ChangePassword", "Account", "User changed their own password", GetClientIP());
+
+            TempData["Success"] = "Password changed successfully.";
+            return RedirectToAction(nameof(Profile));
+        }
     }
 }
