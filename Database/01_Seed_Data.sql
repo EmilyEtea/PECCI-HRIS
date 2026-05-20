@@ -71,7 +71,7 @@ GO
 -- ── User Accounts for test employees ─────────────────────────────────────────
 -- Password for all: Test@1234
 -- BCrypt hash (cost 11) for "Test@1234"
-DECLARE @hash NVARCHAR(MAX) = N'$2a$11$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.'
+DECLARE @hash NVARCHAR(MAX) = N'$2a$11$D9ldhzgheBjmOc3r1stdYe3SsG.ck.K/Z08Kc2kJSuz/lANU0MfL.'
 
 -- RoleID: 1=HR Admin, 2=HR Staff, 3=Manager, 4=Employee
 MERGE Users AS target
