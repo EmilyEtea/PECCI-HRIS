@@ -96,6 +96,11 @@ A comprehensive web-based HRIS built with **ASP.NET Core MVC (.NET 10)**, Entity
 - ✅ **Dashboard charts** — Headcount by Department (bar), Monthly Payroll Cost Trend (line), Leave Utilization (horizontal bar)
 - ✅ **Employee Deactivation** — HR Admin can deactivate employees with reason selection from the Profile page
 
+### Employee Self-Service
+- ✅ **My Payslips** — all employees can view and download their own payslips (filtered by month/year), accessible from the sidebar
+- ✅ **Change Password** — all users can change their own password from the top-right user menu (requires current password verification)
+- ✅ **Leave Credits** — categorized view with cards per leave type, progress bars, and color-coded balance indicators
+
 ---
 
 ## 🛠️ Technology Stack

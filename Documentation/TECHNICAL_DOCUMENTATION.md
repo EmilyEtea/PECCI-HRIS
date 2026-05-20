@@ -4,7 +4,7 @@
 
 ---
 
-**Version:** 1.3.0
+**Version:** 1.4.0
 **Year:** 2026
 **Developed by:** UST Interns — Arkin Reinier Aguilar, Maxenne De Guzman, Bernice Elyssa Soriano, Emily Etea
 **Repository:** https://github.com/EmilyEtea/PECCI-HRIS
@@ -422,6 +422,8 @@ SystemSettings  (standalone — no FK)
 | Logout | POST | Sign out, clear session |
 | Profile | GET | View current user profile |
 | AccessDenied | GET | Access denied page |
+| ChangePassword (GET) | GET | Change password form (self-service) |
+| ChangePassword (POST) | POST | Validates current password, saves new BCrypt hash |
 
 **Authentication Flow:**
 1. User submits username + password
@@ -430,6 +432,12 @@ SystemSettings  (standalone — no FK)
 4. On success: creates ClaimsPrincipal with role, name, employeeID claims
 5. Cookie issued with 8-hour expiry (30 days if "Remember Me")
 6. Failed attempts are logged to AuditLog
+
+**Change Password:**
+- Available to all authenticated users from the top-right user menu
+- Requires the current password before allowing the change
+- New password is BCrypt-hashed before saving
+- Action is logged to the audit trail
 
 ### 5.2 Employee Management Module (Sprint 1)
 
@@ -502,7 +510,7 @@ Scan Flow:
 | Review (GET) | GET | HR Admin, HR Staff, Manager | Review application |
 | Review (POST) | POST | HR Admin, HR Staff, Manager | Approve/Reject |
 | Cancel | POST | All (own) | Cancel pending application |
-| Credits | GET | All | View leave credits |
+| Credits | GET | All | View leave credits (categorized by employee with progress bars) |
 | Types | GET | HR Admin, HR Staff | Leave types list |
 | CreateType | GET/POST | HR Admin | Add leave type |
 
@@ -556,13 +564,20 @@ HR cancels → Status: Cancelled  (manual, before payroll runs)
 | Index | GET | HR Admin, HR Staff | Payroll records list |
 | Compute (GET) | GET | HR Admin, HR Staff | Computation parameters form |
 | Compute (POST) | POST | HR Admin, HR Staff | Run payroll computation |
-| Payslips | GET | HR Admin, HR Staff | View payslips |
+| Payslips | GET | HR Admin, HR Staff | View all payslips |
+| MyPayslips | GET | All roles | Employee self-service payslip view |
 | DownloadPdf | GET | HR Admin, HR Staff | Download single payslip PDF |
 | DownloadAllPdf | GET | HR Admin, HR Staff | Download all payslips as one PDF |
 | Finalize | POST | HR Admin | Finalize payroll record |
 | ThirteenthMonth (GET) | GET | HR Admin, HR Staff | 13th month pay form |
 | ThirteenthMonth (POST) | POST | HR Admin, HR Staff | Compute 13th month pay |
 | DownloadThirteenthMonthExcel | GET | HR Admin, HR Staff | Export 13th month to Excel |
+
+**Employee Self-Service Payslip (MyPayslips):**
+- Accessible to all authenticated users from the sidebar
+- Employees only see their own payslips (filtered by EmployeeID from claims)
+- Filterable by month and year
+- Includes PDF download button per payslip
 
 **13th Month Pay (PD 851):**
 - Formula: `Total Basic Salary Earned in Year ÷ 12`
@@ -849,13 +864,19 @@ dotnet run
 | Scanner Terminal | ✅ | ✅ | ✅ | ✅ (anonymous) |
 | Leave Apply | ✅ | ✅ | ✅ | ✅ |
 | Leave Approve | ✅ | ✅ | ✅ (Manager step) | ❌ |
+| Leave Credits | ✅ All | ✅ All | ✅ Own | ✅ Own |
 | Leave Types | ✅ Full | ✅ View | ❌ | ❌ |
 | Deductions | ✅ Full | ✅ Full | ❌ | ❌ |
+| Recurring Schedules | ✅ Full | ✅ Full | ❌ | ❌ |
 | Payroll Compute | ✅ | ✅ | ❌ | ❌ |
 | Payroll Finalize | ✅ | ❌ | ❌ | ❌ |
-| Payslips | ✅ | ✅ | ❌ | ❌ |
+| Payslips (HR view) | ✅ | ✅ | ❌ | ❌ |
+| My Payslips (self) | ✅ | ✅ | ✅ | ✅ |
+| 13th Month Pay | ✅ | ✅ | ❌ | ❌ |
+| Holiday Calendar | ✅ Full | ✅ Full | ❌ | ❌ |
 | Reports | ✅ All | ✅ All | ✅ All | ❌ |
 | User Management | ✅ | ❌ | ❌ | ❌ |
+| Change Password | ✅ | ✅ | ✅ | ✅ |
 | System Settings | ✅ | ❌ | ❌ | ❌ |
 | Audit Trail | ✅ | ❌ | ❌ | ❌ |
 
@@ -954,19 +975,22 @@ Returns computed late threshold for live preview in the Settings UI.
 ## 12. Known Issues & Limitations
 
 ### Fully implemented ✅
-1. **PDF Payslip Export** — iText7 generates single and multi-page PDFs with PECCI logo watermark. Download buttons on Payslips page.
+1. **PDF Payslip Export** — iText7 generates single and multi-page PDFs with PECCI logo watermark.
 2. **Excel Report Export** — ClosedXML exports all 4 report types + 13th Month Pay.
-3. **Recurring Deductions** — `RecurringDeductionSchedule` model, service, controller, and views fully implemented. HR can manage schedules and generate deductions per cutoff.
-4. **Leave Credit Background Refresh** — `LeaveCreditRefreshJob` runs 5 seconds after startup, only allocates if no credits exist for the current year.
-5. **13th Month Pay (PD 851)** — Compute per year, full breakdown, Excel export, tax-exempt calculation per TRAIN Law.
+3. **Recurring Deductions** — Full UI: schedules, generate per cutoff, pause/resume/cancel.
+4. **Leave Credit Background Refresh** — `LeaveCreditRefreshJob` runs 5 seconds after startup.
+5. **13th Month Pay (PD 851)** — Compute per year, full breakdown, Excel export, tax-exempt per TRAIN Law.
 6. **Dashboard Charts** — Headcount by Department, Monthly Payroll Cost Trend, Leave Utilization.
-7. **Employee Deactivation** — HR Admin can deactivate employees with reason from the Profile page.
+7. **Employee Deactivation** — HR Admin can deactivate with reason from the Profile page.
+8. **Change Password (self-service)** — All users can change their own password from the user menu.
+9. **Employee Self-Service Payslip** — All employees can view and download their own payslips.
+10. **Leave Credits Categorized** — Cards per leave type with progress bars and color-coded balances.
+11. **Night Differential Auto-Computation** — Computed from attendance records during payroll via `ComputeTotalNightDifferentialPay` in `AttendanceComputationService`.
 
 ### Not yet implemented
-8. **Email Notifications** — Leave approval/rejection notifications via email are not in this version.
-9. **Biometric Device Integration** — Time In/Out is web-based. The Scanner Terminal supports barcode/RFID via keyboard-wedge scanners. Native biometric device SDK integration is out of scope.
-10. **Holiday Calendar Auto-Detection** — Holidays are manually entered. An automated Philippine holiday calendar (based on Proclamation list) is planned.
-11. **Night Differential Auto-Computation** — Night differential rate is defined in settings but not automatically applied during payroll. Manual entry via `OtherEarnings` is required for now.
+12. **Email Notifications** — Leave approval/rejection notifications via email are not in this version.
+13. **Biometric Device Integration** — Scanner Terminal supports barcode/RFID via keyboard-wedge. Native SDK integration is out of scope.
+14. **Holiday Calendar Auto-Detection** — Holidays are manually entered. Automated Philippine holiday calendar is planned.
 
 ---
 
