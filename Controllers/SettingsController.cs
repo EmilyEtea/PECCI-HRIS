@@ -7,7 +7,8 @@ using PECCI_HRIS.ViewModels;
 
 namespace PECCI_HRIS.Controllers
 {
-    [Authorize(Roles = "HR Admin")]
+    // HR Staff can view settings but not change them — write actions stay HR Admin only
+    [Authorize(Roles = "HR Admin,HR Staff")]
     public class SettingsController : BaseController
     {
         private readonly ApplicationDbContext _context;
@@ -41,11 +42,14 @@ namespace PECCI_HRIS.Controllers
                 WorkingHoursDisplay  = $"{ruleSummary.WorkingHoursPerDay:F1} hours/day"
             };
 
+            // HR Staff can view but not edit — pass flag to view
+            ViewBag.IsReadOnly = !User.IsInRole("HR Admin");
             return View(vm);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "HR Admin")]
         public async Task<IActionResult> UpdateSetting([FromBody] SettingUpdateRequest request)
         {
             var setting = await _context.SystemSettings
@@ -81,6 +85,7 @@ namespace PECCI_HRIS.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "HR Admin")]
         public async Task<IActionResult> BulkUpdate(Dictionary<string, string> settings)
         {
             int updated = 0;

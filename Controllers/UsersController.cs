@@ -9,7 +9,8 @@ using PECCI_HRIS.ViewModels;
 
 namespace PECCI_HRIS.Controllers
 {
-    [Authorize(Roles = "HR Admin")]
+    // HR Staff can view users but not create/edit/delete — write actions stay HR Admin only
+    [Authorize(Roles = "HR Admin,HR Staff")]
     public class UsersController : BaseController
     {
         private readonly ApplicationDbContext _context;
@@ -42,6 +43,7 @@ namespace PECCI_HRIS.Controllers
         }
 
         [HttpPost, ValidateAntiForgeryToken]
+        [Authorize(Roles = "HR Admin")]
         public async Task<IActionResult> Create(CreateUserViewModel vm)
         {
             if (await _context.Users.AnyAsync(u => u.Username == vm.Username))
@@ -98,6 +100,7 @@ namespace PECCI_HRIS.Controllers
         }
 
         [HttpPost, ValidateAntiForgeryToken]
+        [Authorize(Roles = "HR Admin")]
         public async Task<IActionResult> Edit(UserViewModel vm)
         {
             if (!ModelState.IsValid)
@@ -132,6 +135,7 @@ namespace PECCI_HRIS.Controllers
         }
 
         [HttpPost, ValidateAntiForgeryToken]
+        [Authorize(Roles = "HR Admin")]
         public async Task<IActionResult> ResetPassword(ChangePasswordViewModel vm)
         {
             if (!ModelState.IsValid) return View(vm);
@@ -150,6 +154,7 @@ namespace PECCI_HRIS.Controllers
         }
 
         [HttpPost, ValidateAntiForgeryToken]
+        [Authorize(Roles = "HR Admin")]
         public async Task<IActionResult> ToggleStatus(int id)
         {
             var user = await _context.Users.FindAsync(id);

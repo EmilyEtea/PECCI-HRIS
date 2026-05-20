@@ -123,7 +123,7 @@
         }
 
         <!-- Admin -->
-        @if (role == "HR Admin")
+        @if (role == "HR Admin" || role == "HR Staff")
         {
             <div class="nav-section-label">Administration</div>
             <a asp-controller="Users" asp-action="Index" class="@NavClass("Users")">

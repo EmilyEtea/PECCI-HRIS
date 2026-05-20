@@ -5,7 +5,7 @@ using PECCI_HRIS.Data;
 
 namespace PECCI_HRIS.Controllers
 {
-    [Authorize(Roles = "HR Admin")]
+    [Authorize(Roles = "HR Admin,HR Staff")]
     public class AuditLogController : BaseController
     {
         private readonly ApplicationDbContext _context;

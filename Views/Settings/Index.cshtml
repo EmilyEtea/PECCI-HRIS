@@ -14,7 +14,7 @@
             </ol>
         </nav>
     </div>
-    <button class="btn btn-pecci-primary" onclick="saveAllSettings()">
+    <button class="btn btn-pecci-primary" onclick="saveAllSettings()" @(ViewBag.IsReadOnly == true ? "disabled title='HR Staff can view but not edit settings'" : "")>
         <i class="fas fa-save me-1"></i> Save All Changes
     </button>
 </div>
