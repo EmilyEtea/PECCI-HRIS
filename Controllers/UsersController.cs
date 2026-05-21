@@ -32,6 +32,7 @@ namespace PECCI_HRIS.Controllers
             return View(users);
         }
 
+        [Authorize(Roles = "HR Admin")]
         public async Task<IActionResult> Create()
         {
             var vm = new CreateUserViewModel
