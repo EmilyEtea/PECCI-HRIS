@@ -53,8 +53,8 @@ namespace PECCI_HRIS.ViewModels
 
         // Philippine mobile: 09XXXXXXXXX or +639XXXXXXXXX
         [Display(Name = "Contact Number")]
-        [RegularExpression(@"^(09|\+639)\d{9}$",
-            ErrorMessage = "Enter a valid Philippine mobile number (e.g. 09171234567 or +639171234567).")]
+        [RegularExpression(@"^$|^(09|\+639)\d{9}$",
+            ErrorMessage = "Enter a valid Philippine mobile number (e.g. 09171234567).")]
         public string? ContactNumber { get; set; }
 
         [Display(Name = "Personal Email")]
@@ -65,22 +65,26 @@ namespace PECCI_HRIS.ViewModels
         [EmailAddress(ErrorMessage = "Enter a valid email address.")]
         public string? CompanyEmail { get; set; }
 
-        // Government IDs — Philippine formats
+        // Government IDs — Philippine formats (all required)
+        [Required(ErrorMessage = "SSS Number is required.")]
         [Display(Name = "SSS Number")]
         [RegularExpression(@"^\d{2}-\d{7}-\d{1}$",
             ErrorMessage = "SSS format: XX-XXXXXXX-X (e.g. 33-1234567-8).")]
         public string? SSSNumber { get; set; }
 
+        [Required(ErrorMessage = "PhilHealth Number is required.")]
         [Display(Name = "PhilHealth Number")]
         [RegularExpression(@"^\d{2}-\d{9}-\d{1}$",
             ErrorMessage = "PhilHealth format: XX-XXXXXXXXX-X (e.g. 12-345678901-2).")]
         public string? PhilHealthNumber { get; set; }
 
+        [Required(ErrorMessage = "Pag-IBIG Number is required.")]
         [Display(Name = "Pag-IBIG Number")]
         [RegularExpression(@"^\d{4}-\d{4}-\d{4}$",
             ErrorMessage = "Pag-IBIG format: XXXX-XXXX-XXXX (e.g. 1234-5678-9012).")]
         public string? PagIbigNumber { get; set; }
 
+        [Required(ErrorMessage = "TIN Number is required.")]
         [Display(Name = "TIN Number")]
         [RegularExpression(@"^\d{3}-\d{3}-\d{3}(-\d{3})?$",
             ErrorMessage = "TIN format: XXX-XXX-XXX or XXX-XXX-XXX-XXX (e.g. 123-456-789-000).")]

@@ -123,6 +123,22 @@ namespace PECCI_HRIS.Controllers
             if (vm.DateRegularized.HasValue && vm.DateRegularized < vm.DateHired)
                 ModelState.AddModelError("DateRegularized", "Date regularized cannot be before date hired.");
 
+            // Auto-generate EmployeeNo if left blank
+            if (string.IsNullOrWhiteSpace(vm.EmployeeNo))
+            {
+                var lastNo = await _context.Employees
+                    .Where(e => e.EmployeeNo.StartsWith("EMP-"))
+                    .OrderByDescending(e => e.EmployeeNo)
+                    .Select(e => e.EmployeeNo)
+                    .FirstOrDefaultAsync();
+
+                int next = 1;
+                if (lastNo != null && int.TryParse(lastNo.Replace("EMP-", ""), out int parsed))
+                    next = parsed + 1;
+
+                vm.EmployeeNo = $"EMP-{next:D4}";
+            }
+
             bool duplicateNo = await _context.Employees.AnyAsync(e => e.EmployeeNo == vm.EmployeeNo);
             if (duplicateNo)
                 ModelState.AddModelError("EmployeeNo", "This Employee No. is already in use.");
@@ -136,7 +152,7 @@ namespace PECCI_HRIS.Controllers
 
             var employee = new Employee
             {
-                EmployeeNo = vm.EmployeeNo!,
+                EmployeeNo = vm.EmployeeNo,
                 FirstName = vm.FirstName,
                 MiddleName = vm.MiddleName,
                 LastName = vm.LastName,
