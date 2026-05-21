@@ -126,6 +126,10 @@
                             </td>
                             <td>
                                 <div class="d-flex gap-1">
+                                    <a asp-action="Details" asp-route-id="@leave.LeaveApplicationID"
+                                       class="btn btn-sm btn-outline-secondary" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
                                     @if (isHROrManager && leave.Status == "Pending")
                                     {
                                         <a asp-action="Review" asp-route-id="@leave.LeaveApplicationID"

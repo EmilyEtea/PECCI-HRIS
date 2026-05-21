@@ -188,6 +188,28 @@ namespace PECCI_HRIS.Controllers
             return RedirectToAction(nameof(Index));
         }
 
+        // ── Details (all roles — employees see their own, HR/Manager see all) ──────
+        public async Task<IActionResult> Details(int id)
+        {
+            var application = await _context.LeaveApplications
+                .Include(l => l.Employee).ThenInclude(e => e!.Department)
+                .Include(l => l.Employee!.Position)
+                .Include(l => l.LeaveType)
+                .FirstOrDefaultAsync(l => l.LeaveApplicationID == id);
+
+            if (application == null) return NotFound();
+
+            // Employees can only view their own applications
+            if (GetCurrentRole() == "Employee")
+            {
+                int empId = int.Parse(User.FindFirst("EmployeeID")?.Value ?? "0");
+                if (application.EmployeeID != empId)
+                    return Forbid();
+            }
+
+            return View(application);
+        }
+
         // ── Approve / Reject (Manager & HR) ──────────────────────────────────────
         [Authorize(Roles = "HR Admin,HR Staff,Manager")]
         public async Task<IActionResult> Review(int id)
