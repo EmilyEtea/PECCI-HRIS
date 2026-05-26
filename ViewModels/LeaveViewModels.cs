@@ -34,7 +34,7 @@ namespace PECCI_HRIS.ViewModels
     public class LeaveApprovalViewModel
     {
         public int LeaveApplicationID { get; set; }
-        public string Action { get; set; } = string.Empty; // Approve | Reject
+        public string Action { get; set; } = string.Empty; // Approve | Disapprove
         public string? Remarks { get; set; }
     }
 

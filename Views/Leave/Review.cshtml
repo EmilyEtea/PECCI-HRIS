@@ -65,10 +65,10 @@
                         <div class="text-muted small mb-1">Current Status</div>
                         @{
                             var badgeClass = Model.Status switch {
-                                "Approved"  => "badge-approved",
-                                "Rejected"  => "badge-rejected",
-                                "Cancelled" => "badge-inactive",
-                                _           => "badge-pending"
+                                "Approved"    => "badge-approved",
+                                "Disapproved" => "badge-rejected",
+                                "Cancelled"   => "badge-inactive",
+                                _             => "badge-pending"
                             };
                         }
                         <span class="status-badge @badgeClass">@Model.Status</span>
@@ -101,10 +101,10 @@
                                     onclick="swalConfirm(this, 'Approve this leave application?', 'Yes, approve', 'question')">
                                 <i class="fas fa-check me-1"></i> Approve
                             </button>
-                            <button type="button" name="Action" value="Reject"
+                            <button type="button" name="Action" value="Disapprove"
                                     class="btn btn-pecci-orange"
-                                    onclick="swalDanger(this, 'Reject this leave application?', 'Yes, reject')">
-                                <i class="fas fa-times me-1"></i> Reject
+                                    onclick="swalDanger(this, 'Disapprove this leave application?', 'Yes, disapprove')">
+                                <i class="fas fa-times me-1"></i> Disapprove
                             </button>
                             <a asp-action="Index" class="btn btn-outline-secondary ms-auto">
                                 <i class="fas fa-arrow-left me-1"></i> Back
@@ -171,26 +171,25 @@
 
 @section Scripts {
 <script>
-    // Override swalConfirm for named submit buttons (Approve/Reject)
+    // Override swalConfirm for named submit buttons (Approve/Disapprove)
     document.querySelectorAll('button[name="Action"]').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
             const action = this.value;
             const isApprove = action === 'Approve';
             Swal.fire({
-                title: isApprove ? 'Approve Leave?' : 'Reject Leave?',
+                title: isApprove ? 'Approve Leave?' : 'Disapprove Leave?',
                 text: isApprove
                     ? 'This leave application will be approved.'
-                    : 'This leave application will be rejected.',
+                    : 'This leave application will be disapproved.',
                 icon: isApprove ? 'question' : 'warning',
                 showCancelButton: true,
                 confirmButtonColor: isApprove ? '#2d6a4f' : '#dc3545',
                 cancelButtonColor: '#6c757d',
-                confirmButtonText: isApprove ? 'Yes, approve' : 'Yes, reject',
+                confirmButtonText: isApprove ? 'Yes, approve' : 'Yes, disapprove',
                 cancelButtonText: 'Cancel'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Create a hidden input and submit the form
                     const form = this.closest('form');
                     const input = document.createElement('input');
                     input.type = 'hidden';

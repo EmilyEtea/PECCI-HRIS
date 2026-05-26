@@ -53,6 +53,9 @@ namespace PECCI_HRIS.Controllers
             if (await _context.Users.AnyAsync(u => u.Email == vm.Email))
                 ModelState.AddModelError("Email", "Email already in use.");
 
+            if (vm.EmployeeID.HasValue && await _context.Users.AnyAsync(u => u.EmployeeID == vm.EmployeeID))
+                ModelState.AddModelError("EmployeeID", "This employee is already linked to another user account.");
+
             if (!ModelState.IsValid)
             {
                 vm.Roles     = await GetRoleList();
@@ -104,6 +107,10 @@ namespace PECCI_HRIS.Controllers
         [Authorize(Roles = "HR Admin")]
         public async Task<IActionResult> Edit(UserViewModel vm)
         {
+            // Check if another user (not this one) is already linked to the selected employee
+            if (vm.EmployeeID.HasValue && await _context.Users.AnyAsync(u => u.EmployeeID == vm.EmployeeID && u.UserID != vm.UserID))
+                ModelState.AddModelError("EmployeeID", "This employee is already linked to another user account.");
+
             if (!ModelState.IsValid)
             {
                 vm.Roles     = await GetRoleList();

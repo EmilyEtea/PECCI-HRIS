@@ -99,7 +99,10 @@ namespace PECCI_HRIS.Controllers
                                            lc.LeaveTypeID == vm.LeaveTypeID &&
                                            lc.Year == DateTime.Today.Year);
 
-            decimal days = (decimal)(vm.EndDate - vm.StartDate).TotalDays + 1;
+            decimal days = CountWorkdays(vm.StartDate, vm.EndDate);
+
+            if (days == 0)
+                ModelState.AddModelError("", "The selected date range contains no working days (Mon–Fri).");
 
             if (credit == null || credit.RemainingCredits < days)
                 ModelState.AddModelError("", $"Insufficient leave balance. You have {credit?.RemainingCredits ?? 0} day(s) remaining.");
@@ -210,7 +213,7 @@ namespace PECCI_HRIS.Controllers
             return View(application);
         }
 
-        // ── Approve / Reject (Manager & HR) ──────────────────────────────────────
+        // ── Approve / Disapprove (Manager & HR) ──────────────────────────────────────
         [Authorize(Roles = "HR Admin,HR Staff,Manager")]
         public async Task<IActionResult> Review(int id)
         {
@@ -241,14 +244,14 @@ namespace PECCI_HRIS.Controllers
                 application.ManagerApproverID = GetCurrentUserID();
                 application.ManagerApprovedAt = DateTime.Now;
                 application.ManagerRemarks    = vm.Remarks;
-                application.Status = isApproved ? "Pending HR" : "Rejected";
+                application.Status = isApproved ? "Pending HR" : "Disapproved";
             }
             else // HR Admin or HR Staff
             {
                 application.HRApproverID = GetCurrentUserID();
                 application.HRApprovedAt = DateTime.Now;
                 application.HRRemarks    = vm.Remarks;
-                application.Status = isApproved ? "Approved" : "Rejected";
+                application.Status = isApproved ? "Approved" : "Disapproved";
             }
 
             application.UpdatedAt = DateTime.Now;
@@ -268,7 +271,7 @@ namespace PECCI_HRIS.Controllers
                     credit.UpdatedAt = DateTime.Now;
                 }
             }
-            else if (application.Status == "Rejected")
+            else if (application.Status == "Disapproved")
             {
                 // Release pending credits
                 var credit = await _context.LeaveCredits
@@ -291,10 +294,10 @@ namespace PECCI_HRIS.Controllers
                 GetClientIP());
 
             // ── Email: notify employee of the decision ────────────────────────
-            // Only send on terminal statuses (Approved / Rejected).
+            // Only send on terminal statuses (Approved / Disapproved).
             // "Pending HR" means the Manager approved but HR still needs to act —
             // we send a "pending review" email to HR instead.
-            if (application.Status == "Approved" || application.Status == "Rejected")
+            if (application.Status == "Approved" || application.Status == "Disapproved")
             {
                 var empUser = await _context.Users
                     .FirstOrDefaultAsync(u => u.EmployeeID == application.EmployeeID);
@@ -456,6 +459,24 @@ namespace PECCI_HRIS.Controllers
 
             TempData["Success"] = $"Leave credits refreshed for {year}. {count} records updated.";
             return RedirectToAction(nameof(Credits));
+        }
+
+        // ── Helpers ───────────────────────────────────────────────────────────────
+
+        /// <summary>
+        /// Counts working days (Mon–Fri) between two dates, inclusive.
+        /// This matches the JS countWorkdays() function in Apply.cshtml.
+        /// </summary>
+        private static decimal CountWorkdays(DateTime start, DateTime end)
+        {
+            if (end < start) return 0;
+            decimal count = 0;
+            for (var d = start.Date; d <= end.Date; d = d.AddDays(1))
+            {
+                if (d.DayOfWeek != DayOfWeek.Saturday && d.DayOfWeek != DayOfWeek.Sunday)
+                    count++;
+            }
+            return count;
         }
     }
 }

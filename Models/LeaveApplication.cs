@@ -24,7 +24,7 @@ namespace PECCI_HRIS.Models
         public string? Reason { get; set; }
 
         [MaxLength(20)]
-        public string Status { get; set; } = "Pending"; // Pending, Approved, Rejected, Cancelled
+        public string Status { get; set; } = "Pending"; // Pending, Approved, Disapproved, Cancelled
 
         // Approval workflow
         public int? ManagerApproverID { get; set; }

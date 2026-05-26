@@ -88,7 +88,7 @@ namespace PECCI_HRIS.Services
         }
 
         /// <summary>
-        /// Notifies the employee that their leave was approved or rejected.
+        /// Notifies the employee that their leave was approved or disapproved.
         /// </summary>
         public Task SendLeaveDecisionAsync(
             string employeeEmail, string employeeName,
@@ -98,7 +98,7 @@ namespace PECCI_HRIS.Services
             bool approved = status == "Approved";
             string subject = approved
                 ? $"[PECCI HRIS] Leave Approved — {leaveType}"
-                : $"[PECCI HRIS] Leave Rejected — {leaveType}";
+                : $"[PECCI HRIS] Leave Disapproved — {leaveType}";
             string body = LeaveDecisionTemplate(
                 employeeName, leaveType, startDate, endDate, days,
                 approved, approverName, remarks);
@@ -141,10 +141,10 @@ namespace PECCI_HRIS.Services
             bool approved, string approverName, string? remarks)
         {
             string statusColor  = approved ? "#2d6a4f" : "#dc3545";
-            string statusLabel  = approved ? "✅ Approved" : "❌ Rejected";
+            string statusLabel  = approved ? "✅ Approved" : "❌ Disapproved";
             string statusText   = approved
                 ? "Your leave application has been <strong>approved</strong>."
-                : "Your leave application has been <strong>rejected</strong>.";
+                : "Your leave application has been <strong>disapproved</strong>.";
 
             string remarksHtml = string.IsNullOrWhiteSpace(remarks)
                 ? ""

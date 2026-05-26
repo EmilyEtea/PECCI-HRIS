@@ -52,7 +52,7 @@
                     <option value="">All Statuses</option>
                     <option value="Pending"  selected="@(ViewBag.Status == "Pending")">Pending</option>
                     <option value="Approved" selected="@(ViewBag.Status == "Approved")">Approved</option>
-                    <option value="Rejected" selected="@(ViewBag.Status == "Rejected")">Rejected</option>
+                    <option value="Disapproved" selected="@(ViewBag.Status == "Disapproved")">Disapproved</option>
                     <option value="Cancelled" selected="@(ViewBag.Status == "Cancelled")">Cancelled</option>
                 </select>
             </div>
@@ -116,10 +116,10 @@
                             <td class="text-center">
                                 @{
                                     var badgeClass = leave.Status switch {
-                                        "Approved"  => "badge-approved",
-                                        "Rejected"  => "badge-rejected",
-                                        "Cancelled" => "badge-inactive",
-                                        _           => "badge-pending"
+                                        "Approved"     => "badge-approved",
+                                        "Disapproved"  => "badge-rejected",
+                                        "Cancelled"    => "badge-inactive",
+                                        _              => "badge-pending"
                                     };
                                 }
                                 <span class="status-badge @badgeClass">@leave.Status</span>
