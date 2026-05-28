@@ -111,7 +111,13 @@
                             </td>
                             <td>@leave.StartDate.ToString("MM/dd/yyyy")</td>
                             <td>@leave.EndDate.ToString("MM/dd/yyyy")</td>
-                            <td class="text-center fw-semibold">@leave.NumberOfDays</td>
+                            <td class="text-center fw-semibold">
+                                @leave.NumberOfDays
+                                @if (leave.IsHalfDay)
+                                {
+                                    <span class="badge bg-info text-dark d-block" style="font-size:0.6rem;">½ @leave.HalfDayPeriod</span>
+                                }
+                            </td>
                             <td class="text-muted small">@leave.AppliedAt.ToString("MM/dd/yyyy")</td>
                             <td class="text-center">
                                 @{

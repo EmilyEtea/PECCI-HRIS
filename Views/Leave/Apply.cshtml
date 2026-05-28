@@ -46,16 +46,48 @@
                                 Start Date <span class="text-danger">*</span>
                             </label>
                             <input asp-for="StartDate" class="form-control" type="date" id="startDate"
-                                   min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                                   min="@DateTime.Today.ToString("yyyy-MM-dd")"
+                                   value="@Model.StartDate.ToString("yyyy-MM-dd")" />
                             <span asp-validation-for="StartDate" class="text-danger small"></span>
                         </div>
-                        <div class="col-md-6 mb-3">
+                        <div class="col-md-6 mb-3" id="endDateGroup">
                             <label asp-for="EndDate" class="form-label fw-semibold">
                                 End Date <span class="text-danger">*</span>
                             </label>
                             <input asp-for="EndDate" class="form-control" type="date" id="endDate"
-                                   min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                                   min="@DateTime.Today.ToString("yyyy-MM-dd")"
+                                   value="@Model.EndDate.ToString("yyyy-MM-dd")" />
                             <span asp-validation-for="EndDate" class="text-danger small"></span>
+                        </div>
+                    </div>
+
+                    <!-- Half-day toggle -->
+                    <div class="mb-3">
+                        <div class="form-check form-switch">
+                            <input asp-for="IsHalfDay" class="form-check-input" type="checkbox"
+                                   id="isHalfDay" role="switch" />
+                            <label asp-for="IsHalfDay" class="form-check-label fw-semibold">
+                                Half Day
+                            </label>
+                        </div>
+                        <div id="halfDayPeriodGroup" style="display:none;" class="mt-2">
+                            <label class="form-label small fw-semibold">Period</label>
+                            <div class="d-flex gap-3">
+                                <div class="form-check">
+                                    <input asp-for="HalfDayPeriod" class="form-check-input" type="radio"
+                                           id="halfAM" value="AM" checked />
+                                    <label class="form-check-label" for="halfAM">
+                                        <i class="fas fa-sun me-1 text-warning"></i> AM (Morning)
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input asp-for="HalfDayPeriod" class="form-check-input" type="radio"
+                                           id="halfPM" value="PM" />
+                                    <label class="form-check-label" for="halfPM">
+                                        <i class="fas fa-moon me-1 text-primary"></i> PM (Afternoon)
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -63,7 +95,7 @@
                     <div class="alert alert-info py-2 mb-3" id="dayCountAlert" style="display:none;">
                         <i class="fas fa-info-circle me-1"></i>
                         Number of days: <strong id="dayCount">0</strong>
-                        <span class="text-muted small ms-2">(excluding weekends)</span>
+                        <span class="text-muted small ms-2" id="dayCountNote">(excluding weekends)</span>
                     </div>
 
                     <div class="mb-4">
@@ -157,35 +189,78 @@
             return count;
         }
 
+        const halfDayToggle   = document.getElementById('isHalfDay');
+        const halfDayGroup    = document.getElementById('halfDayPeriodGroup');
+        const endDateGroup    = document.getElementById('endDateGroup');
+        const startDateInput  = document.getElementById('startDate');
+        const endDateInput    = document.getElementById('endDate');
+        const dayCountAlert   = document.getElementById('dayCountAlert');
+        const dayCountEl      = document.getElementById('dayCount');
+        const dayCountNote    = document.getElementById('dayCountNote');
+
         function updateDayCount() {
-            const startVal = document.getElementById('startDate').value;
-            const endVal   = document.getElementById('endDate').value;
-            const alert    = document.getElementById('dayCountAlert');
-            const countEl  = document.getElementById('dayCount');
+            const startVal = startDateInput.value;
+            const endVal   = endDateInput.value;
+            const isHalf   = halfDayToggle.checked;
+
+            if (isHalf) {
+                if (startVal) {
+                    dayCountEl.textContent = '0.5';
+                    dayCountNote.textContent = '(half day)';
+                    dayCountAlert.style.display = 'block';
+                } else {
+                    dayCountAlert.style.display = 'none';
+                }
+                return;
+            }
 
             if (startVal && endVal) {
                 const start = new Date(startVal);
                 const end   = new Date(endVal);
                 if (end >= start) {
                     const days = countWorkdays(start, end);
-                    countEl.textContent = days;
-                    alert.style.display = 'block';
+                    dayCountEl.textContent = days;
+                    dayCountNote.textContent = '(excluding weekends)';
+                    dayCountAlert.style.display = 'block';
                 } else {
-                    alert.style.display = 'none';
+                    dayCountAlert.style.display = 'none';
                 }
             } else {
-                alert.style.display = 'none';
+                dayCountAlert.style.display = 'none';
             }
         }
 
-        document.getElementById('startDate').addEventListener('change', function () {
-            const endInput = document.getElementById('endDate');
-            if (!endInput.value || endInput.value < this.value) {
-                endInput.value = this.value;
+        function applyHalfDayMode() {
+            const isHalf = halfDayToggle.checked;
+            halfDayGroup.style.display = isHalf ? 'block' : 'none';
+
+            if (isHalf) {
+                // Lock end date to start date and hide the end date field
+                endDateInput.value = startDateInput.value;
+                endDateGroup.style.opacity = '0.5';
+                endDateInput.readOnly = true;
+            } else {
+                endDateGroup.style.opacity = '1';
+                endDateInput.readOnly = false;
+            }
+            updateDayCount();
+        }
+
+        halfDayToggle.addEventListener('change', applyHalfDayMode);
+
+        startDateInput.addEventListener('change', function () {
+            if (halfDayToggle.checked) {
+                endDateInput.value = this.value;
+            } else if (!endDateInput.value || endDateInput.value < this.value) {
+                endDateInput.value = this.value;
             }
             updateDayCount();
         });
-        document.getElementById('endDate').addEventListener('change', updateDayCount);
+
+        endDateInput.addEventListener('change', updateDayCount);
+
+        // Initialise on page load (handles validation round-trip)
+        applyHalfDayMode();
         updateDayCount();
     </script>
 }

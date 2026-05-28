@@ -93,15 +93,23 @@ namespace PECCI_HRIS.Controllers
             if (vm.StartDate > vm.EndDate)
                 ModelState.AddModelError("", "End date must be after start date.");
 
+            // Half-day: force EndDate = StartDate, days = 0.5
+            if (vm.IsHalfDay)
+            {
+                vm.EndDate = vm.StartDate;
+                if (vm.StartDate.DayOfWeek == DayOfWeek.Saturday || vm.StartDate.DayOfWeek == DayOfWeek.Sunday)
+                    ModelState.AddModelError("", "Half-day leave cannot be applied on a weekend.");
+            }
+
             // Check leave balance
             var credit = await _context.LeaveCredits
                 .FirstOrDefaultAsync(lc => lc.EmployeeID == empId &&
                                            lc.LeaveTypeID == vm.LeaveTypeID &&
                                            lc.Year == DateTime.Today.Year);
 
-            decimal days = CountWorkdays(vm.StartDate, vm.EndDate);
+            decimal days = vm.IsHalfDay ? 0.5m : CountWorkdays(vm.StartDate, vm.EndDate);
 
-            if (days == 0)
+            if (!vm.IsHalfDay && days == 0)
                 ModelState.AddModelError("", "The selected date range contains no working days (Mon–Fri).");
 
             if (credit == null || credit.RemainingCredits < days)
@@ -129,6 +137,8 @@ namespace PECCI_HRIS.Controllers
                 StartDate     = vm.StartDate,
                 EndDate       = vm.EndDate,
                 NumberOfDays  = days,
+                IsHalfDay     = vm.IsHalfDay,
+                HalfDayPeriod = vm.IsHalfDay ? vm.HalfDayPeriod : null,
                 Reason        = vm.Reason,
                 Status        = "Pending",
                 AppliedAt     = DateTime.Now

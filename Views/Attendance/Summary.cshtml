@@ -25,7 +25,7 @@
 <div class="card mb-3 no-print">
     <div class="card-body py-2">
         <form method="get" class="row g-2 align-items-end">
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <label class="form-label small mb-1">Month</label>
                 <select name="month" class="form-select form-select-sm">
                     @for (int m = 1; m <= 12; m++)
@@ -36,10 +36,36 @@
                     }
                 </select>
             </div>
-            <div class="col-md-2">
+            <div class="col-md-1">
                 <label class="form-label small mb-1">Year</label>
                 <input type="number" name="year" class="form-control form-control-sm"
                        value="@(ViewBag.Year ?? DateTime.Today.Year)" min="2020" max="2099" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small mb-1">Cutoff Period</label>
+                <select name="cutoff" class="form-select form-select-sm">
+                    @{
+                        var currentCutoff = (string?)ViewBag.Cutoff ?? "full";
+                    }
+                    @if (currentCutoff == "full")
+                    {
+                        <option value="full" selected>Full Month</option>
+                        <option value="1-15">1st Half (1–15)</option>
+                        <option value="16-end">2nd Half (16–end)</option>
+                    }
+                    else if (currentCutoff == "1-15")
+                    {
+                        <option value="full">Full Month</option>
+                        <option value="1-15" selected>1st Half (1–15)</option>
+                        <option value="16-end">2nd Half (16–end)</option>
+                    }
+                    else
+                    {
+                        <option value="full">Full Month</option>
+                        <option value="1-15">1st Half (1–15)</option>
+                        <option value="16-end" selected>2nd Half (16–end)</option>
+                    }
+                </select>
             </div>
             @if (isHR)
             {
@@ -73,12 +99,37 @@
     </div>
 </div>
 
+@* ── Period completeness warning ── *@
+@if ((bool)(ViewBag.PeriodIsIncomplete ?? false))
+{
+    <div class="alert alert-warning d-flex align-items-start gap-3 mb-3 no-print" role="alert">
+        <i class="fas fa-exclamation-triangle fa-lg mt-1 flex-shrink-0"></i>
+        <div>
+            <strong>This period is not yet complete.</strong>
+            The selected cutoff ends on
+            <strong>@(((DateTime)ViewBag.PeriodEndDate).ToString("MMMM d, yyyy"))</strong>,
+            which is still in the future. The summary below reflects attendance recorded
+            so far and may be incomplete.
+            <div class="mt-1 small text-muted">
+                You can still view and print this report, but avoid using it for final
+                payroll computation until the period has ended.
+            </div>
+        </div>
+    </div>
+}
+
 <div class="card">
     <div class="card-header">
         <i class="fas fa-list me-1"></i> Attendance Summary
         @if (ViewBag.PeriodLabel != null)
         {
             <span class="text-muted small ms-2">— @ViewBag.PeriodLabel</span>
+        }
+        @if ((bool)(ViewBag.PeriodIsIncomplete ?? false))
+        {
+            <span class="badge bg-warning text-dark ms-2" style="font-size:0.7rem;">
+                <i class="fas fa-clock me-1"></i>In Progress
+            </span>
         }
         <span class="badge ms-2" style="background:var(--pecci-green);">@Model.Count() employees</span>
     </div>

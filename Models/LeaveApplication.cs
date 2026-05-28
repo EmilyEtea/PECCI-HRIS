@@ -20,6 +20,13 @@ namespace PECCI_HRIS.Models
 
         public decimal NumberOfDays { get; set; }
 
+        /// <summary>True when the employee is applying for a half day (0.5).</summary>
+        public bool IsHalfDay { get; set; } = false;
+
+        /// <summary>"AM" or "PM" — only relevant when IsHalfDay is true.</summary>
+        [MaxLength(2)]
+        public string? HalfDayPeriod { get; set; }
+
         [MaxLength(500)]
         public string? Reason { get; set; }
 

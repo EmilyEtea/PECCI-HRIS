@@ -21,6 +21,13 @@ namespace PECCI_HRIS.ViewModels
         [Display(Name = "End Date")]
         public DateTime EndDate { get; set; } = DateTime.Today;
 
+        [Display(Name = "Half Day")]
+        public bool IsHalfDay { get; set; } = false;
+
+        /// <summary>AM = morning half, PM = afternoon half. Only relevant when IsHalfDay = true.</summary>
+        [Display(Name = "Half Day Period")]
+        public string HalfDayPeriod { get; set; } = "AM";
+
         [Display(Name = "Reason")]
         [MaxLength(500)]
         public string? Reason { get; set; }

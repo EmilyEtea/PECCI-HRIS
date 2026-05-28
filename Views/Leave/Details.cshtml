@@ -77,6 +77,12 @@
                         <div class="text-muted small mb-1">Duration</div>
                         <div class="fw-bold fs-5" style="color:var(--pecci-green);">
                             @Model.NumberOfDays day(s)
+                            @if (Model.IsHalfDay)
+                            {
+                                <span class="badge bg-info text-dark ms-1" style="font-size:0.7rem;">
+                                    Half Day — @Model.HalfDayPeriod
+                                </span>
+                            }
                         </div>
                     </div>
                     <div class="col-12">

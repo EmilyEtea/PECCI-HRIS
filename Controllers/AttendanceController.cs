@@ -448,13 +448,37 @@ namespace PECCI_HRIS.Controllers
         // ── Summary Report ───────────────────────────────────────────────────────
 
         [Authorize(Roles = "HR Admin,HR Staff")]
-        public async Task<IActionResult> Summary(int? employeeId, int? month, int? year)
+        public async Task<IActionResult> Summary(int? employeeId, int? month, int? year, string? cutoff)
         {
-            month ??= DateTime.Today.Month;
-            year  ??= DateTime.Today.Year;
+            month  ??= DateTime.Today.Month;
+            year   ??= DateTime.Today.Year;
+            cutoff ??= "full";
 
-            var startDate = new DateTime(year.Value, month.Value, 1);
-            var endDate   = startDate.AddMonths(1).AddDays(-1);
+            // Determine date range based on cutoff selection
+            DateTime startDate, endDate;
+            string periodLabel;
+
+            var monthStart = new DateTime(year.Value, month.Value, 1);
+            var monthEnd   = monthStart.AddMonths(1).AddDays(-1);
+
+            if (cutoff == "1-15")
+            {
+                startDate   = monthStart;
+                endDate     = new DateTime(year.Value, month.Value, 15);
+                periodLabel = $"{monthStart:MMMM yyyy} — 1st Half (1–15)";
+            }
+            else if (cutoff == "16-end")
+            {
+                startDate   = new DateTime(year.Value, month.Value, 16);
+                endDate     = monthEnd;
+                periodLabel = $"{monthStart:MMMM yyyy} — 2nd Half (16–{monthEnd.Day})";
+            }
+            else // full month
+            {
+                startDate   = monthStart;
+                endDate     = monthEnd;
+                periodLabel = monthStart.ToString("MMMM yyyy");
+            }
 
             var query = _context.AttendanceRecords
                 .Include(a => a.Employee).ThenInclude(e => e!.Department)
@@ -471,26 +495,29 @@ namespace PECCI_HRIS.Controllers
                 .GroupBy(a => a.EmployeeID)
                 .Select(g => new AttendanceSummaryRow
                 {
-                    Employee        = g.First().Employee!,
-                    TotalPresent    = g.Count(r => r.AttendanceStatus == "Present"),
-                    TotalLate       = g.Count(r => r.AttendanceStatus == "Late"),
-                    TotalAbsent     = g.Count(r => r.AttendanceStatus == "Absent"),
-                    TotalOnLeave    = g.Count(r => r.AttendanceStatus == "On Leave"),
-                    TotalLateMinutes    = g.Sum(r => r.LateMinutes ?? 0),
+                    Employee             = g.First().Employee!,
+                    TotalPresent         = g.Count(r => r.AttendanceStatus == "Present"),
+                    TotalLate            = g.Count(r => r.AttendanceStatus == "Late"),
+                    TotalAbsent          = g.Count(r => r.AttendanceStatus == "Absent"),
+                    TotalOnLeave         = g.Count(r => r.AttendanceStatus == "On Leave"),
+                    TotalLateMinutes     = g.Sum(r => r.LateMinutes ?? 0),
                     TotalOvertimeMinutes = g.Sum(r => r.OvertimeMinutes ?? 0),
-                    TotalHoursWorked    = g.Sum(r => r.TotalHoursWorked ?? 0)
+                    TotalHoursWorked     = g.Sum(r => r.TotalHoursWorked ?? 0)
                 })
                 .ToList();
 
             var employees = await _context.Employees
                 .Where(e => e.Status == "Active").OrderBy(e => e.LastName).ToListAsync();
 
-            ViewBag.Employees  = employees;
-            ViewBag.Month      = month;
-            ViewBag.Year       = year;
-            ViewBag.EmployeeId = employeeId;
-            ViewBag.MonthName  = startDate.ToString("MMMM yyyy");
-            ViewBag.PeriodLabel = startDate.ToString("MMMM yyyy");
+            ViewBag.Employees   = employees;
+            ViewBag.Month       = month;
+            ViewBag.Year        = year;
+            ViewBag.Cutoff      = cutoff;
+            ViewBag.EmployeeId  = employeeId;
+            ViewBag.MonthName   = monthStart.ToString("MMMM yyyy");
+            ViewBag.PeriodLabel = periodLabel;
+            ViewBag.PeriodEndDate = endDate;
+            ViewBag.PeriodIsIncomplete = endDate > DateTime.Today;
 
             return View(summary);
         }
