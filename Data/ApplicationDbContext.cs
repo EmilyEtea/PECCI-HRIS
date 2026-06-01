@@ -26,6 +26,7 @@ namespace PECCI_HRIS.Data
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<SystemSetting> SystemSettings { get; set; }
         public DbSet<Holiday> Holidays { get; set; }
+        public DbSet<OvertimeRequest> OvertimeRequests { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {

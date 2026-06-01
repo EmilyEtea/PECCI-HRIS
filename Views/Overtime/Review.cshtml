@@ -1,0 +1,182 @@
+@model PECCI_HRIS.Models.OvertimeRequest
+@{
+    ViewData["Title"] = "Review OT Request";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    double defaultApproved = (double)(ViewBag.DefaultApprovedMinutes ?? 0);
+}
+
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-clipboard-check me-2"></i>Review OT Request</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Dashboard" asp-action="Index">Dashboard</a></li>
+                <li class="breadcrumb-item"><a asp-action="Index">Overtime Requests</a></li>
+                <li class="breadcrumb-item active">Review</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-7">
+        <div class="card mb-4">
+            <div class="card-header"><i class="fas fa-file-alt me-1"></i> Request Details</div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="text-muted small mb-1">Employee</div>
+                        <div class="fw-semibold">@Model.Employee?.FullName</div>
+                        <div class="text-muted small">@Model.Employee?.Department?.DepartmentName</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="text-muted small mb-1">Overtime Date</div>
+                        <div class="fw-semibold">@Model.OvertimeDate.ToString("MMMM dd, yyyy")</div>
+                        <div class="text-muted small">@Model.OvertimeDate.ToString("dddd")</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-muted small mb-1">Start Time</div>
+                        <div class="fw-semibold">@Model.StartTime.ToString(@"hh\:mm tt")</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-muted small mb-1">End Time</div>
+                        <div class="fw-semibold">@Model.EndTime.ToString(@"hh\:mm tt")</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-muted small mb-1">Requested</div>
+                        <div class="fw-bold fs-5" style="color:var(--pecci-green);">
+                            @Model.RequestedHours.ToString("F2") hrs
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="text-muted small mb-1">Reason / Purpose</div>
+                        <div class="p-3 rounded" style="background:var(--pecci-bg-light);border:1px solid var(--pecci-border);">
+                            @(string.IsNullOrEmpty(Model.Reason) ? "No reason provided." : Model.Reason)
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (Model.Status == "Pending" || Model.Status == "Pending HR")
+        {
+            <div class="card">
+                <div class="card-header"><i class="fas fa-gavel me-1"></i> Decision</div>
+                <div class="card-body">
+                    <form asp-action="Review" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="OvertimeRequestID" value="@Model.OvertimeRequestID" />
+
+                        @if (User.IsInRole("HR Admin") || User.IsInRole("HR Staff"))
+                        {
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">
+                                    Approved Minutes
+                                    <span class="text-muted small">(default: requested amount)</span>
+                                </label>
+                                <input type="number" name="ApprovedMinutes" class="form-control"
+                                       value="@defaultApproved" min="1" max="1440" step="1" />
+                                <div class="form-text">
+                                    You may reduce the approved minutes if needed.
+                                    Leave as-is to approve the full requested amount.
+                                </div>
+                            </div>
+                        }
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                Remarks <span class="text-muted small">(optional)</span>
+                            </label>
+                            <textarea name="Remarks" class="form-control" rows="3"
+                                      placeholder="Add remarks or comments..."></textarea>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="button" name="Action" value="Approve"
+                                    class="btn btn-pecci-primary"
+                                    onclick="submitReview(this, 'Approve')">
+                                <i class="fas fa-check me-1"></i> Approve
+                            </button>
+                            <button type="button" name="Action" value="Disapprove"
+                                    class="btn btn-pecci-orange"
+                                    onclick="submitReview(this, 'Disapprove')">
+                                <i class="fas fa-times me-1"></i> Disapprove
+                            </button>
+                            <a asp-action="Index" class="btn btn-outline-secondary ms-auto">
+                                <i class="fas fa-arrow-left me-1"></i> Back
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        }
+        else
+        {
+            <a asp-action="Index" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back to List
+            </a>
+        }
+    </div>
+
+    <div class="col-lg-5">
+        @if (!string.IsNullOrEmpty(Model.ManagerRemarks) || !string.IsNullOrEmpty(Model.HRRemarks))
+        {
+            <div class="card">
+                <div class="card-header"><i class="fas fa-comments me-1"></i> Previous Remarks</div>
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(Model.ManagerRemarks))
+                    {
+                        <div class="mb-3">
+                            <div class="text-muted small mb-1">Manager Remarks</div>
+                            <div class="p-2 rounded" style="background:var(--pecci-bg-light);border:1px solid var(--pecci-border);">
+                                @Model.ManagerRemarks
+                            </div>
+                            @if (Model.ManagerApprovedAt.HasValue)
+                            {
+                                <div class="text-muted" style="font-size:0.7rem;">
+                                    @Model.ManagerApprovedAt.Value.ToString("MM/dd/yyyy hh:mm tt")
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="mt-3 text-center text-muted" style="font-size:0.72rem;">
+    <i class="fas fa-code me-1"></i>
+    Developed by <strong>UST Interns</strong>:
+    Arkin Reinier Aguilar &bull; Maxenne De Guzman &bull; Bernice Elyssa Soriano &bull; Emily Etea
+</div>
+
+@section Scripts {
+<script>
+    function submitReview(btn, action) {
+        const isApprove = action === 'Approve';
+        Swal.fire({
+            title: isApprove ? 'Approve OT Request?' : 'Disapprove OT Request?',
+            text: isApprove
+                ? 'This overtime request will be approved.'
+                : 'This overtime request will be disapproved.',
+            icon: isApprove ? 'question' : 'warning',
+            showCancelButton: true,
+            confirmButtonColor: isApprove ? '#2d6a4f' : '#dc3545',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: isApprove ? 'Yes, approve' : 'Yes, disapprove',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const form  = btn.closest('form');
+                const input = document.createElement('input');
+                input.type  = 'hidden';
+                input.name  = 'Action';
+                input.value = action;
+                form.appendChild(input);
+                form.submit();
+            }
+        });
+    }
+</script>
+}

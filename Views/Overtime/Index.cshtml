@@ -1,0 +1,185 @@
+@model IEnumerable<PECCI_HRIS.Models.OvertimeRequest>
+@{
+    ViewData["Title"] = "Overtime Requests";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    bool isHR      = (bool)(ViewBag.IsHR ?? false);
+    bool isManager = (bool)(ViewBag.IsManager ?? false);
+    bool canReview = isHR || isManager;
+    var empIdClaim = User.FindFirst("EmployeeID")?.Value ?? "0";
+    int currentEmpId = int.Parse(empIdClaim);
+}
+
+<div class="page-header">
+    <div>
+        <h1><i class="fas fa-business-time me-2"></i>@(isHR || isManager ? "Overtime Requests" : "My Overtime Requests")</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a asp-controller="Dashboard" asp-action="Index">Dashboard</a></li>
+                <li class="breadcrumb-item active">Overtime Requests</li>
+            </ol>
+        </nav>
+    </div>
+    <a asp-action="Create" class="btn btn-pecci-primary">
+        <i class="fas fa-plus me-1"></i> File OT Request
+    </a>
+</div>
+
+<!-- Filters -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            @if (isHR)
+            {
+                <div class="col-md-3">
+                    <label class="form-label small mb-1">Employee</label>
+                    <select name="employeeId" class="form-select form-select-sm">
+                        <option value="">All Employees</option>
+                        @foreach (var emp in (List<PECCI_HRIS.Models.Employee>)ViewBag.Employees)
+                        {
+                            <option value="@emp.EmployeeID"
+                                    selected="@(ViewBag.EmployeeId?.ToString() == emp.EmployeeID.ToString())">
+                                @emp.FullName
+                            </option>
+                        }
+                    </select>
+                </div>
+            }
+            <div class="col-md-3">
+                <label class="form-label small mb-1">Status</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">All Statuses</option>
+                    <option value="Pending"     selected="@(ViewBag.Status == "Pending")">Pending</option>
+                    <option value="Pending HR"  selected="@(ViewBag.Status == "Pending HR")">Pending HR</option>
+                    <option value="Approved"    selected="@(ViewBag.Status == "Approved")">Approved</option>
+                    <option value="Disapproved" selected="@(ViewBag.Status == "Disapproved")">Disapproved</option>
+                    <option value="Cancelled"   selected="@(ViewBag.Status == "Cancelled")">Cancelled</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-pecci-primary btn-sm w-100">
+                    <i class="fas fa-search me-1"></i> Filter
+                </button>
+            </div>
+            <div class="col-md-1">
+                <a asp-action="Index" class="btn btn-outline-secondary btn-sm w-100" title="Clear">
+                    <i class="fas fa-times"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <i class="fas fa-list me-1"></i> Overtime Requests
+        <span class="badge ms-2" style="background:var(--pecci-green);">@Model.Count() records</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-pecci mb-0">
+                <thead>
+                    <tr>
+                        @if (isHR) { <th>Employee</th> }
+                        <th>OT Date</th>
+                        <th>Time</th>
+                        <th class="text-center">Requested</th>
+                        <th class="text-center">Approved</th>
+                        <th>Filed On</th>
+                        <th class="text-center">Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var ot in Model)
+                    {
+                        <tr>
+                            @if (isHR)
+                            {
+                                <td>
+                                    <div class="fw-semibold">@ot.Employee?.FullName</div>
+                                    <div class="text-muted small">@ot.Employee?.Department?.DepartmentName</div>
+                                </td>
+                            }
+                            <td>
+                                <div class="fw-semibold">@ot.OvertimeDate.ToString("MM/dd/yyyy")</div>
+                                <div class="text-muted small">@ot.OvertimeDate.ToString("dddd")</div>
+                            </td>
+                            <td class="small">
+                                @ot.StartTime.ToString(@"hh\:mm tt") – @ot.EndTime.ToString(@"hh\:mm tt")
+                            </td>
+                            <td class="text-center fw-semibold">
+                                @ot.RequestedHours.ToString("F2") hrs
+                            </td>
+                            <td class="text-center">
+                                @if (ot.ApprovedMinutes.HasValue)
+                                {
+                                    <span class="fw-semibold text-success">@ot.ApprovedHours!.Value.ToString("F2") hrs</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                            <td class="text-muted small">@ot.AppliedAt.ToString("MM/dd/yyyy")</td>
+                            <td class="text-center">
+                                @{
+                                    var badgeClass = ot.Status switch {
+                                        "Approved"    => "badge-approved",
+                                        "Disapproved" => "badge-rejected",
+                                        "Cancelled"   => "badge-inactive",
+                                        "Pending HR"  => "badge-pending",
+                                        _             => "badge-pending"
+                                    };
+                                }
+                                <span class="status-badge @badgeClass">@ot.Status</span>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    <a asp-action="Details" asp-route-id="@ot.OvertimeRequestID"
+                                       class="btn btn-sm btn-outline-secondary" title="View">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    @if (canReview && (ot.Status == "Pending" || ot.Status == "Pending HR"))
+                                    {
+                                        <a asp-action="Review" asp-route-id="@ot.OvertimeRequestID"
+                                           class="btn btn-sm btn-pecci-primary" title="Review">
+                                            <i class="fas fa-clipboard-check me-1"></i> Review
+                                        </a>
+                                    }
+                                    @if (ot.EmployeeID == currentEmpId &&
+                                         (ot.Status == "Pending" || ot.Status == "Pending HR"))
+                                    {
+                                        <form asp-action="Cancel" asp-route-id="@ot.OvertimeRequestID"
+                                              method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <button type="button" class="btn btn-sm btn-outline-danger"
+                                                    title="Cancel"
+                                                    onclick="swalDanger(this, 'Cancel this OT request?', 'Yes, cancel it')">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                    @if (!Model.Any())
+                    {
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-5">
+                                <i class="fas fa-business-time fa-2x mb-2 d-block opacity-25"></i>
+                                No overtime requests found.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3 text-center text-muted" style="font-size:0.72rem;">
+    <i class="fas fa-code me-1"></i>
+    Developed by <strong>UST Interns</strong>:
+    Arkin Reinier Aguilar &bull; Maxenne De Guzman &bull; Bernice Elyssa Soriano &bull; Emily Etea
+</div>
