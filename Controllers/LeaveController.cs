@@ -64,9 +64,18 @@ namespace PECCI_HRIS.Controllers
         {
             int empId = int.Parse(User.FindFirst("EmployeeID")?.Value ?? "0");
 
+            // Load employee to check gender for restricted leave types
+            var employee = await _context.Employees.FindAsync(empId);
+
             var leaveCredits = await _context.LeaveCredits
                 .Include(lc => lc.LeaveType)
-                .Where(lc => lc.EmployeeID == empId && lc.Year == DateTime.Today.Year)
+                .Where(lc => lc.EmployeeID == empId
+                          && lc.Year == DateTime.Today.Year
+                          && lc.LeaveType!.IsActive
+                          // Filter out gender-restricted types that don't match this employee
+                          && (lc.LeaveType.GenderRestriction == null
+                              || lc.LeaveType.GenderRestriction == ""
+                              || lc.LeaveType.GenderRestriction == employee!.Gender))
                 .ToListAsync();
 
             var vm = new LeaveApplicationViewModel
@@ -90,6 +99,10 @@ namespace PECCI_HRIS.Controllers
         {
             int empId = int.Parse(User.FindFirst("EmployeeID")?.Value ?? "0");
 
+            // Load employee once — used by gender restriction and birthday date checks below
+            var applicant = await _context.Employees
+                .FirstOrDefaultAsync(e => e.EmployeeID == empId);
+
             if (vm.StartDate > vm.EndDate)
                 ModelState.AddModelError("", "End date must be after start date.");
 
@@ -99,6 +112,77 @@ namespace PECCI_HRIS.Controllers
                 vm.EndDate = vm.StartDate;
                 if (vm.StartDate.DayOfWeek == DayOfWeek.Saturday || vm.StartDate.DayOfWeek == DayOfWeek.Sunday)
                     ModelState.AddModelError("", "Half-day leave cannot be applied on a weekend.");
+            }
+
+            // ── Leave type rules ──────────────────────────────────────────────────
+            var selectedLeaveType = await _context.LeaveTypes
+                .FirstOrDefaultAsync(lt => lt.LeaveTypeID == vm.LeaveTypeID);
+
+            if (selectedLeaveType != null)
+            {
+                // Gender restriction — e.g. Magna Carta Leave is Female-only,
+                // Paternity Leave is Male-only
+                if (!string.IsNullOrEmpty(selectedLeaveType.GenderRestriction) && applicant != null &&
+                    !string.Equals(applicant.Gender, selectedLeaveType.GenderRestriction,
+                        StringComparison.OrdinalIgnoreCase))
+                {
+                    ModelState.AddModelError("",
+                        $"{selectedLeaveType.LeaveTypeName} is only available to " +
+                        $"{selectedLeaveType.GenderRestriction.ToLower()} employees.");
+                }
+
+                // Date-specific rule — Birthday Leave (BDL) must be taken on the
+                // employee's birthday (month+day). If the birthday falls on a weekend
+                // or holiday, the next working day is accepted per PECCI §6.3.2.
+                if (selectedLeaveType.IsDateSpecific &&
+                    selectedLeaveType.LeaveCode == "BDL" &&
+                    applicant != null)
+                {
+                    var birthdayThisYear = new DateTime(
+                        vm.StartDate.Year,
+                        applicant.DateOfBirth.Month,
+                        applicant.DateOfBirth.Day);
+
+                    bool isValidBirthdayDate = vm.StartDate.Date == birthdayThisYear.Date;
+
+                    if (!isValidBirthdayDate)
+                    {
+                        bool birthdayIsHoliday = await _context.Holidays
+                            .AnyAsync(h => h.HolidayDate.Date == birthdayThisYear.Date
+                                        && h.Year == birthdayThisYear.Year);
+
+                        bool birthdayIsWeekend =
+                            birthdayThisYear.DayOfWeek == DayOfWeek.Saturday ||
+                            birthdayThisYear.DayOfWeek == DayOfWeek.Sunday;
+
+                        if (birthdayIsWeekend || birthdayIsHoliday)
+                        {
+                            // Walk forward to the next working day
+                            var nextWorkday = birthdayThisYear.AddDays(1);
+                            while (nextWorkday.DayOfWeek == DayOfWeek.Saturday ||
+                                   nextWorkday.DayOfWeek == DayOfWeek.Sunday ||
+                                   await _context.Holidays.AnyAsync(h =>
+                                       h.HolidayDate.Date == nextWorkday.Date &&
+                                       h.Year == nextWorkday.Year))
+                            {
+                                nextWorkday = nextWorkday.AddDays(1);
+                            }
+                            isValidBirthdayDate = vm.StartDate.Date == nextWorkday.Date;
+                        }
+                    }
+
+                    if (!isValidBirthdayDate)
+                    {
+                        ModelState.AddModelError("StartDate",
+                            $"Birthday Leave must be taken on your birthday " +
+                            $"({applicant.DateOfBirth:MMMM d}) or the next working day " +
+                            $"if it falls on a weekend or holiday.");
+                    }
+
+                    // Birthday Leave is always exactly 1 day
+                    vm.EndDate  = vm.StartDate;
+                    vm.IsHalfDay = false;
+                }
             }
 
             // Check leave balance
@@ -446,6 +530,8 @@ namespace PECCI_HRIS.Controllers
                 IsPaid             = vm.IsPaid,
                 RequiresApproval   = vm.RequiresApproval,
                 IsActive           = vm.IsActive,
+                GenderRestriction  = string.IsNullOrWhiteSpace(vm.GenderRestriction) ? null : vm.GenderRestriction,
+                IsDateSpecific     = vm.IsDateSpecific,
                 CreatedAt          = DateTime.Now
             };
 

@@ -20,14 +20,25 @@ namespace PECCI_HRIS.Services
 
         /// <summary>
         /// Allocates leave credits for a newly hired employee for the current year.
+        /// Gender-restricted leave types (e.g. Magna Carta Leave for females,
+        /// Paternity Leave for males) are only allocated when the employee's
+        /// gender matches.
         /// </summary>
         public async Task AllocateForNewEmployee(int employeeId)
         {
             var leaveTypes = await _context.LeaveTypes.Where(lt => lt.IsActive).ToListAsync();
             int year = DateTime.Today.Year;
 
+            // Load employee gender for restriction check
+            var employee = await _context.Employees.FindAsync(employeeId);
+
             foreach (var lt in leaveTypes)
             {
+                // Skip if gender-restricted and employee's gender doesn't match
+                if (!string.IsNullOrEmpty(lt.GenderRestriction) &&
+                    !string.Equals(lt.GenderRestriction, employee?.Gender, StringComparison.OrdinalIgnoreCase))
+                    continue;
+
                 bool exists = await _context.LeaveCredits
                     .AnyAsync(lc => lc.EmployeeID == employeeId &&
                                     lc.LeaveTypeID == lt.LeaveTypeID &&
@@ -53,6 +64,7 @@ namespace PECCI_HRIS.Services
         /// Annual refresh — run at the start of each new year (Jan 1).
         /// Resets leave credits for all active employees for the new year.
         /// Unused credits from the previous year are NOT carried over by default.
+        /// Gender-restricted leave types are only allocated to matching employees.
         /// </summary>
         public async Task<int> RefreshAnnualCredits()
         {
@@ -66,6 +78,11 @@ namespace PECCI_HRIS.Services
             {
                 foreach (var lt in leaveTypes)
                 {
+                    // Skip gender-restricted types that don't match
+                    if (!string.IsNullOrEmpty(lt.GenderRestriction) &&
+                        !string.Equals(lt.GenderRestriction, emp.Gender, StringComparison.OrdinalIgnoreCase))
+                        continue;
+
                     bool exists = await _context.LeaveCredits
                         .AnyAsync(lc => lc.EmployeeID == emp.EmployeeID &&
                                         lc.LeaveTypeID == lt.LeaveTypeID &&
@@ -95,6 +112,7 @@ namespace PECCI_HRIS.Services
 
         /// <summary>
         /// Manually trigger annual refresh from the admin panel.
+        /// Gender-restricted leave types are only allocated to matching employees.
         /// </summary>
         public async Task<int> ManualRefresh(int year)
         {
@@ -107,6 +125,11 @@ namespace PECCI_HRIS.Services
             {
                 foreach (var lt in leaveTypes)
                 {
+                    // Skip gender-restricted types that don't match
+                    if (!string.IsNullOrEmpty(lt.GenderRestriction) &&
+                        !string.Equals(lt.GenderRestriction, emp.Gender, StringComparison.OrdinalIgnoreCase))
+                        continue;
+
                     var existing = await _context.LeaveCredits
                         .FirstOrDefaultAsync(lc => lc.EmployeeID == emp.EmployeeID &&
                                                    lc.LeaveTypeID == lt.LeaveTypeID &&

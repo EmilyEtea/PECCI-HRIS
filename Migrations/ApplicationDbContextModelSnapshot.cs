@@ -768,7 +768,14 @@ namespace PECCI_HRIS.Migrations
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
 
+                    b.Property<string>("GenderRestriction")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
                     b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDateSpecific")
                         .HasColumnType("bit");
 
                     b.Property<bool>("IsPaid")
@@ -797,6 +804,7 @@ namespace PECCI_HRIS.Migrations
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DefaultDaysPerYear = 15,
                             IsActive = true,
+                            IsDateSpecific = false,
                             IsPaid = true,
                             LeaveCode = "VL",
                             LeaveTypeName = "Vacation Leave",
@@ -808,6 +816,7 @@ namespace PECCI_HRIS.Migrations
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DefaultDaysPerYear = 15,
                             IsActive = true,
+                            IsDateSpecific = false,
                             IsPaid = true,
                             LeaveCode = "SL",
                             LeaveTypeName = "Sick Leave",
@@ -819,6 +828,7 @@ namespace PECCI_HRIS.Migrations
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DefaultDaysPerYear = 3,
                             IsActive = true,
+                            IsDateSpecific = false,
                             IsPaid = true,
                             LeaveCode = "EL",
                             LeaveTypeName = "Emergency Leave",
@@ -829,7 +839,9 @@ namespace PECCI_HRIS.Migrations
                             LeaveTypeID = 4,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DefaultDaysPerYear = 105,
+                            GenderRestriction = "Female",
                             IsActive = true,
+                            IsDateSpecific = false,
                             IsPaid = true,
                             LeaveCode = "ML",
                             LeaveTypeName = "Maternity Leave",
@@ -840,10 +852,65 @@ namespace PECCI_HRIS.Migrations
                             LeaveTypeID = 5,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DefaultDaysPerYear = 7,
+                            GenderRestriction = "Male",
                             IsActive = true,
+                            IsDateSpecific = false,
                             IsPaid = true,
-                            LeaveCode = "PL",
+                            LeaveCode = "PTL",
                             LeaveTypeName = "Paternity Leave",
+                            RequiresApproval = true
+                        },
+                        new
+                        {
+                            LeaveTypeID = 6,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DefaultDaysPerYear = 5,
+                            Description = "5 consecutive working days for death of an immediate family member. Requires registered death certificate. Immediate family: legitimate parents, siblings, spouse, children, legally adopted children, newborn child (35–36 weeks gestation). Source: PECCI HR Policy Manual Part III §8.",
+                            IsActive = true,
+                            IsDateSpecific = false,
+                            IsPaid = true,
+                            LeaveCode = "BRL",
+                            LeaveTypeName = "Bereavement Leave",
+                            RequiresApproval = true
+                        },
+                        new
+                        {
+                            LeaveTypeID = 7,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DefaultDaysPerYear = 60,
+                            Description = "Special Leave Benefit for Women — 2 months (up to 60 working days) for surgery due to gynecological disorders. Female employees only. Requires medical certificate and surgeon's certification. Source: RA 9710 (Magna Carta of Women), RA 9262; PECCI HR Policy Manual Part III §3 (SL).",
+                            GenderRestriction = "Female",
+                            IsActive = true,
+                            IsDateSpecific = false,
+                            IsPaid = true,
+                            LeaveCode = "MCL",
+                            LeaveTypeName = "Magna Carta Leave",
+                            RequiresApproval = true
+                        },
+                        new
+                        {
+                            LeaveTypeID = 8,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DefaultDaysPerYear = 0,
+                            Description = "Used to convert an unplanned absence into a formal leave entry. Unpaid — the corresponding salary deduction for the absent day is retained. Credits are not pre-allocated; HR grants individual credits when converting an absence on record. Source: PECCI HR Policy Manual Part II §5 (Working Conditions — AWOL).",
+                            IsActive = true,
+                            IsDateSpecific = false,
+                            IsPaid = false,
+                            LeaveCode = "LLA",
+                            LeaveTypeName = "Leave in Lieu of Absence",
+                            RequiresApproval = true
+                        },
+                        new
+                        {
+                            LeaveTypeID = 9,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DefaultDaysPerYear = 1,
+                            Description = "1 day paid leave on the employee's birthday. If the birthday falls on a holiday, the following workday off with regular pay is granted. Source: PECCI HR Policy Manual Part III §6.",
+                            IsActive = true,
+                            IsDateSpecific = true,
+                            IsPaid = true,
+                            LeaveCode = "BDL",
+                            LeaveTypeName = "Birthday Leave",
                             RequiresApproval = true
                         });
                 });

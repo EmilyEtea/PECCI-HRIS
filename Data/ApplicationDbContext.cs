@@ -249,11 +249,103 @@ namespace PECCI_HRIS.Data
 
             // Seed Leave Types
             modelBuilder.Entity<LeaveType>().HasData(
-                new LeaveType { LeaveTypeID = 1, LeaveTypeName = "Vacation Leave", LeaveCode = "VL", DefaultDaysPerYear = 15, IsPaid = true, RequiresApproval = true, IsActive = true, CreatedAt = new DateTime(2026, 1, 1) },
-                new LeaveType { LeaveTypeID = 2, LeaveTypeName = "Sick Leave", LeaveCode = "SL", DefaultDaysPerYear = 15, IsPaid = true, RequiresApproval = true, IsActive = true, CreatedAt = new DateTime(2026, 1, 1) },
-                new LeaveType { LeaveTypeID = 3, LeaveTypeName = "Emergency Leave", LeaveCode = "EL", DefaultDaysPerYear = 3, IsPaid = true, RequiresApproval = true, IsActive = true, CreatedAt = new DateTime(2026, 1, 1) },
-                new LeaveType { LeaveTypeID = 4, LeaveTypeName = "Maternity Leave", LeaveCode = "ML", DefaultDaysPerYear = 105, IsPaid = true, RequiresApproval = true, IsActive = true, CreatedAt = new DateTime(2026, 1, 1) },
-                new LeaveType { LeaveTypeID = 5, LeaveTypeName = "Paternity Leave", LeaveCode = "PL", DefaultDaysPerYear = 7, IsPaid = true, RequiresApproval = true, IsActive = true, CreatedAt = new DateTime(2026, 1, 1) }
+                // ── Existing leave types ──────────────────────────────────────────
+                new LeaveType { LeaveTypeID = 1, LeaveTypeName = "Vacation Leave",  LeaveCode = "VL",  DefaultDaysPerYear = 15,  IsPaid = true,  RequiresApproval = true,  IsActive = true, GenderRestriction = null, IsDateSpecific = false, CreatedAt = new DateTime(2026, 1, 1) },
+                new LeaveType { LeaveTypeID = 2, LeaveTypeName = "Sick Leave",      LeaveCode = "SL",  DefaultDaysPerYear = 15,  IsPaid = true,  RequiresApproval = true,  IsActive = true, GenderRestriction = null, IsDateSpecific = false, CreatedAt = new DateTime(2026, 1, 1) },
+                new LeaveType { LeaveTypeID = 3, LeaveTypeName = "Emergency Leave", LeaveCode = "EL",  DefaultDaysPerYear = 3,   IsPaid = true,  RequiresApproval = true,  IsActive = true, GenderRestriction = null, IsDateSpecific = false, CreatedAt = new DateTime(2026, 1, 1) },
+                new LeaveType { LeaveTypeID = 4, LeaveTypeName = "Maternity Leave", LeaveCode = "ML",  DefaultDaysPerYear = 105, IsPaid = true,  RequiresApproval = true,  IsActive = true, GenderRestriction = "Female", IsDateSpecific = false, CreatedAt = new DateTime(2026, 1, 1) },
+                new LeaveType { LeaveTypeID = 5, LeaveTypeName = "Paternity Leave", LeaveCode = "PTL", DefaultDaysPerYear = 7,   IsPaid = true,  RequiresApproval = true,  IsActive = true, GenderRestriction = "Male", IsDateSpecific = false, CreatedAt = new DateTime(2026, 1, 1) },
+
+                // ── New leave types — PECCI HR Policy Manual ──────────────────────
+
+                // §8: Bereavement Leave
+                // 5 consecutive working days, paid.
+                // Covers death of: legitimate parents, brothers/sisters, spouse, children,
+                // legally adopted children (with legal papers), newborn child (35–36 weeks gestation).
+                // Supporting document: registered death certificate.
+                new LeaveType
+                {
+                    LeaveTypeID        = 6,
+                    LeaveTypeName      = "Bereavement Leave",
+                    LeaveCode          = "BRL",
+                    DefaultDaysPerYear = 5,
+                    IsPaid             = true,
+                    RequiresApproval   = true,
+                    IsActive           = true,
+                    GenderRestriction  = null,
+                    IsDateSpecific     = false,
+                    Description        = "5 consecutive working days for death of an immediate family member. " +
+                                         "Requires registered death certificate. " +
+                                         "Immediate family: legitimate parents, siblings, spouse, children, legally adopted children, newborn child (35–36 weeks gestation). " +
+                                         "Source: PECCI HR Policy Manual Part III §8.",
+                    CreatedAt          = new DateTime(2026, 1, 1)
+                },
+
+                // Magna Carta Leave (RA 9710 / RA 9262 — Special Leave Benefit for Women)
+                // 2 months (60 working days) special leave for gynecological disorders
+                // after surgery. Female employees only. Paid, requires medical certificate.
+                new LeaveType
+                {
+                    LeaveTypeID        = 7,
+                    LeaveTypeName      = "Magna Carta Leave",
+                    LeaveCode          = "MCL",
+                    DefaultDaysPerYear = 60,
+                    IsPaid             = true,
+                    RequiresApproval   = true,
+                    IsActive           = true,
+                    GenderRestriction  = "Female",
+                    IsDateSpecific     = false,
+                    Description        = "Special Leave Benefit for Women — 2 months (up to 60 working days) for surgery " +
+                                         "due to gynecological disorders. Female employees only. " +
+                                         "Requires medical certificate and surgeon's certification. " +
+                                         "Source: RA 9710 (Magna Carta of Women), RA 9262; PECCI HR Policy Manual Part III §3 (SL).",
+                    CreatedAt          = new DateTime(2026, 1, 1)
+                },
+
+                // Leave in Lieu of Absence (Leave in Offset of Absence)
+                // An unpaid leave type used to retroactively convert an AWOL/absence into
+                // an approved leave deduction (recorded absence is absorbed from leave credits
+                // or charged as unpaid). IsPaid = false so payroll deduction logic applies.
+                // DefaultDaysPerYear = 0 — credits are not pre-allocated; HR grants on a
+                // case-by-case basis when converting an absence.
+                new LeaveType
+                {
+                    LeaveTypeID        = 8,
+                    LeaveTypeName      = "Leave in Lieu of Absence",
+                    LeaveCode          = "LLA",
+                    DefaultDaysPerYear = 0,
+                    IsPaid             = false,
+                    RequiresApproval   = true,
+                    IsActive           = true,
+                    GenderRestriction  = null,
+                    IsDateSpecific     = false,
+                    Description        = "Used to convert an unplanned absence into a formal leave entry. " +
+                                         "Unpaid — the corresponding salary deduction for the absent day is retained. " +
+                                         "Credits are not pre-allocated; HR grants individual credits when converting an absence on record. " +
+                                         "Source: PECCI HR Policy Manual Part II §5 (Working Conditions — AWOL).",
+                    CreatedAt          = new DateTime(2026, 1, 1)
+                },
+
+                // §6: Birthday Leave
+                // 1 day with pay on the employee's birthday.
+                // If birthday falls on a holiday, the next working day is granted.
+                // IsDateSpecific = true — enforced in LeaveController.Apply via BDL code.
+                new LeaveType
+                {
+                    LeaveTypeID        = 9,
+                    LeaveTypeName      = "Birthday Leave",
+                    LeaveCode          = "BDL",
+                    DefaultDaysPerYear = 1,
+                    IsPaid             = true,
+                    RequiresApproval   = true,
+                    IsActive           = true,
+                    GenderRestriction  = null,
+                    IsDateSpecific     = true,
+                    Description        = "1 day paid leave on the employee's birthday. " +
+                                         "If the birthday falls on a holiday, the following workday off with regular pay is granted. " +
+                                         "Source: PECCI HR Policy Manual Part III §6.",
+                    CreatedAt          = new DateTime(2026, 1, 1)
+                }
             );
 
             // ── Philippine Public Holidays 2026 (Proclamation No. 727, s. 2025) ──

@@ -76,15 +76,33 @@ namespace PECCI_HRIS.Services
                 record.TotalHoursWorked = Math.Max(0, totalMinutes / 60.0);
 
                 // ── Overtime ─────────────────────────────────────────────────────
-                // Overtime = time worked beyond official end time
+                // PECCI §6.3.3: An employee who has not completed the required
+                // 8-hour workday shall not be allowed to render overtime work.
+                // We enforce this by only crediting OT when totalHoursWorked
+                // (before OT) reaches the RequiredHoursPerDay threshold.
                 if (timeOut > _attendanceSettings.WorkEnd)
                 {
-                    double overtimeMinutes = (timeOut - _attendanceSettings.WorkEnd).TotalMinutes;
-                    // Only credit overtime if it exceeds the threshold
-                    if (overtimeMinutes >= _attendanceSettings.OvertimeThresholdMinutes)
-                        record.OvertimeMinutes = Math.Floor(overtimeMinutes);
+                    double regularMinutesWorked = totalMinutes
+                        - (timeOut - _attendanceSettings.WorkEnd).TotalMinutes;
+
+                    // Did the employee complete the required work hours?
+                    double requiredMinutes = _payrollSettings.RequiredHoursPerDay * 60.0;
+                    bool completedRegularDay = regularMinutesWorked >= requiredMinutes;
+
+                    if (completedRegularDay)
+                    {
+                        double overtimeMinutes = (timeOut - _attendanceSettings.WorkEnd).TotalMinutes;
+                        // Only credit overtime if it meets the configured minimum threshold
+                        if (overtimeMinutes >= _attendanceSettings.OvertimeThresholdMinutes)
+                            record.OvertimeMinutes = Math.Floor(overtimeMinutes);
+                        else
+                            record.OvertimeMinutes = 0;
+                    }
                     else
+                    {
+                        // Employee did not complete the workday — no OT credit (PECCI §6.3.3)
                         record.OvertimeMinutes = 0;
+                    }
                 }
                 else
                 {
@@ -212,8 +230,12 @@ namespace PECCI_HRIS.Services
         /// Computes the night differential pay amount for a given number of ND minutes
         /// and the employee's monthly salary.
         ///
-        /// Formula (DOLE): ND pay = NDMinutes / 60 × hourlyRate × NDRate
-        /// where NDRate defaults to 10% (0.10).
+        /// PECCI HR Policy Manual §7.3.1:
+        ///   An employee shall be paid the night premium of additional 50% of the
+        ///   employee's hourly rate for each hour of work from 18:00 to 06:00.
+        ///
+        /// Formula: ND pay = (NDMinutes / 60) × hourlyRate × NDRate
+        /// where NDRate = 0.50 per PECCI policy (configured via NightDifferentialRate).
         /// </summary>
         public decimal ComputeNightDifferentialPay(double ndMinutes, decimal monthlySalary)
         {
@@ -258,48 +280,118 @@ namespace PECCI_HRIS.Services
         }
 
         /// <summary>
-        /// Computes overtime pay for a given number of overtime minutes and hourly rate.
+        /// Computes overtime pay for a given number of overtime minutes.
+        ///
+        /// PECCI HR Policy Manual §6.3.9 defines three rate categories:
+        ///   Completion Rate   — employee completed the 8-hour workday
+        ///     Daytime:  150%  |  Nighttime: 200%
+        ///   No-Completion Rate — employee did NOT complete 8 hours before OT
+        ///     Daytime:  130%  |  Nighttime: 180%
+        ///   Holiday Rate — OT rendered on a holiday
+        ///     Daytime:  100%  |  Nighttime: 150%
+        ///
+        /// The caller supplies <paramref name="hoursWorkedBeforeOt"/> so this method
+        /// can determine Completion vs. No-Completion automatically.
+        /// Night-window OT is detected via <paramref name="overtimeStartTime"/>.
         /// </summary>
-        public decimal ComputeOvertimePay(double overtimeMinutes, decimal monthlySalary,
-            bool isRestDay = false, bool isSpecialHoliday = false, bool isRegularHoliday = false)
+        /// <param name="overtimeMinutes">Total approved/credited OT minutes.</param>
+        /// <param name="monthlySalary">Employee's monthly basic salary.</param>
+        /// <param name="hoursWorkedBeforeOt">
+        ///   Regular hours worked before OT began.
+        ///   Pass the full <see cref="AttendanceRecord.TotalHoursWorked"/> value for the day.
+        ///   A value ≥ <see cref="PayrollSettings.RequiredHoursPerDay"/> means Completion Rate.
+        /// </param>
+        /// <param name="overtimeStartTime">
+        ///   The time OT began (usually = official work-end time).
+        ///   Used to detect whether the OT window falls inside the night differential period.
+        ///   Pass <c>null</c> to always use daytime rate.
+        /// </param>
+        /// <param name="isHoliday">True when the day is a regular or special holiday.</param>
+        public decimal ComputeOvertimePay(
+            double overtimeMinutes,
+            decimal monthlySalary,
+            double hoursWorkedBeforeOt = 8.0,
+            TimeSpan? overtimeStartTime = null,
+            bool isHoliday = false)
         {
             if (overtimeMinutes <= 0) return 0;
 
             decimal hourlyRate = (monthlySalary / 22m) / 8m;
-            decimal multiplier = _payrollSettings.OvertimeRateMultiplier;
-
-            if (isRegularHoliday)
-                multiplier = _payrollSettings.RegularHolidayRateMultiplier * _payrollSettings.OvertimeRateMultiplier;
-            else if (isSpecialHoliday)
-                multiplier = _payrollSettings.SpecialHolidayRateMultiplier * _payrollSettings.OvertimeRateMultiplier;
-            else if (isRestDay)
-                multiplier = _payrollSettings.RestDayOvertimeRateMultiplier;
+            decimal multiplier = SelectOvertimeMultiplier(
+                _payrollSettings, hoursWorkedBeforeOt, overtimeStartTime, isHoliday);
 
             decimal overtimeHours = (decimal)overtimeMinutes / 60m;
             return Math.Round(hourlyRate * multiplier * overtimeHours, 2);
         }
 
         /// <summary>
-        /// Computes overtime pay using explicit rate overrides from DB settings.
+        /// Computes overtime pay using explicit rate overrides loaded from the DB settings table.
+        /// Signature matches the overload called by PayrollController after loading live settings.
         /// </summary>
-        public decimal ComputeOvertimePay(double overtimeMinutes, decimal monthlySalary,
+        public decimal ComputeOvertimePay(
+            double overtimeMinutes,
+            decimal monthlySalary,
             PayrollSettings settings,
-            bool isRestDay = false, bool isSpecialHoliday = false, bool isRegularHoliday = false)
+            double hoursWorkedBeforeOt = 8.0,
+            TimeSpan? overtimeStartTime = null,
+            bool isHoliday = false)
         {
             if (overtimeMinutes <= 0) return 0;
 
             decimal hourlyRate = (monthlySalary / 22m) / 8m;
-            decimal multiplier = settings.OvertimeRateMultiplier;
-
-            if (isRegularHoliday)
-                multiplier = settings.RegularHolidayRateMultiplier * settings.OvertimeRateMultiplier;
-            else if (isSpecialHoliday)
-                multiplier = settings.SpecialHolidayRateMultiplier * settings.OvertimeRateMultiplier;
-            else if (isRestDay)
-                multiplier = settings.RestDayOvertimeRateMultiplier;
+            decimal multiplier = SelectOvertimeMultiplier(
+                settings, hoursWorkedBeforeOt, overtimeStartTime, isHoliday);
 
             decimal overtimeHours = (decimal)overtimeMinutes / 60m;
             return Math.Round(hourlyRate * multiplier * overtimeHours, 2);
+        }
+
+        /// <summary>
+        /// Selects the correct PECCI overtime multiplier based on:
+        ///   1. Whether it is a holiday.
+        ///   2. Whether the employee completed the required hours (Completion vs. No-Completion).
+        ///   3. Whether the OT start time falls inside the night differential window.
+        /// </summary>
+        private static decimal SelectOvertimeMultiplier(
+            PayrollSettings s,
+            double hoursWorkedBeforeOt,
+            TimeSpan? overtimeStartTime,
+            bool isHoliday)
+        {
+            bool isNight = IsNightOvertimeStart(s, overtimeStartTime);
+            bool isCompletion = hoursWorkedBeforeOt >= s.RequiredHoursPerDay;
+
+            if (isHoliday)
+                return isNight ? s.OvertimeHolidayNightMultiplier
+                               : s.OvertimeHolidayDayMultiplier;
+
+            if (isCompletion)
+                return isNight ? s.OvertimeCompletionNightMultiplier
+                               : s.OvertimeRateMultiplier;            // OvertimeRateMultiplier = Completion-Day
+
+            // No-Completion
+            return isNight ? s.OvertimeNoCompletionNightMultiplier
+                           : s.OvertimeNoCompletionDayMultiplier;
+        }
+
+        /// <summary>
+        /// Returns true when <paramref name="overtimeStartTime"/> falls inside the configured
+        /// night differential window (default 18:00 – 06:00).
+        /// </summary>
+        private static bool IsNightOvertimeStart(PayrollSettings s, TimeSpan? overtimeStartTime)
+        {
+            if (overtimeStartTime == null) return false;
+
+            TimeSpan ndStart = TimeSpan.Parse(s.NightDifferentialStartTime); // e.g. 18:00
+            TimeSpan ndEnd   = TimeSpan.Parse(s.NightDifferentialEndTime);   // e.g. 06:00
+            TimeSpan t       = overtimeStartTime.Value;
+
+            // Night window crosses midnight (ndStart > ndEnd), e.g. 18:00 – 06:00
+            if (ndStart > ndEnd)
+                return t >= ndStart || t < ndEnd;
+
+            // Night window is within the same day (unlikely for PECCI but handled)
+            return t >= ndStart && t < ndEnd;
         }
 
         /// <summary>

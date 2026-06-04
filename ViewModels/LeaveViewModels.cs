@@ -69,5 +69,20 @@ namespace PECCI_HRIS.ViewModels
         public bool RequiresApproval { get; set; } = true;
 
         public bool IsActive { get; set; } = true;
+
+        /// <summary>
+        /// Gender restriction. Null / empty = all employees.
+        /// "Female" = female employees only. "Male" = male employees only.
+        /// </summary>
+        [Display(Name = "Gender Restriction")]
+        [MaxLength(10)]
+        public string? GenderRestriction { get; set; }
+
+        /// <summary>
+        /// When true the leave date must align with a specific calendar rule
+        /// (e.g. Birthday Leave must be taken on the employee's actual birthday).
+        /// </summary>
+        [Display(Name = "Date-Specific Leave")]
+        public bool IsDateSpecific { get; set; } = false;
     }
 }
