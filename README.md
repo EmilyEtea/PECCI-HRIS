@@ -1,11 +1,38 @@
 # PECCI HRIS — Human Resource Information System
 
+**v2.0.0**
+
 **PECCI Multipurpose Cooperative**
 
-A comprehensive web-based HRIS built with **ASP.NET Core MVC (.NET 10)**, Entity Framework Core 9, and SQL Server. Covers the full employee lifecycle — from onboarding to payroll — with full Philippine regulatory compliance (BIR TRAIN Law, DOLE, SSS, PhilHealth, Pag-IBIG).
+A comprehensive web-based HRIS built with **ASP.NET Core MVC (.NET 10)**, Entity Framework Core 9, and SQL Server. Covers the full employee lifecycle — from onboarding to payroll — implementing computations based on Philippine regulations (BIR TRAIN Law, DOLE, SSS, PhilHealth, Pag-IBIG, as configured for 2026).
 
-> **Live at:** http://localhost:5000 (local dev)
 > **Repository:** https://github.com/EmilyEtea/PECCI-HRIS
+
+## 🌐 Live Demo
+
+**[LIVE_DEMO_URL_HERE]**
+
+> The free host may take a few seconds to wake up on the first load.
+
+**Try these accounts:**
+
+| Role | Username | Password |
+|---|---|---|
+| HR Admin | `admin` | `Admin@123` |
+| HR Staff | `mreyes` | `Test@1234` |
+| Manager | `agarcia` | `Test@1234` |
+| Employee | `jdelacruz` | `Test@1234` |
+
+**Try the kiosk** (no login needed): `/Attendance/Scanner` — type `EMP-0003` through `EMP-0014` to simulate a barcode scan.
+
+---
+
+## 📸 Screenshots
+
+<!-- Add screenshots to docs/screenshots/ and update the paths below -->
+![Dashboard](docs/screenshots/dashboard.png)
+![Attendance Scanner](docs/screenshots/scanner.png)
+![Payslip](docs/screenshots/payslip.png)
 
 ---
 
@@ -52,7 +79,16 @@ A comprehensive web-based HRIS built with **ASP.NET Core MVC (.NET 10)**, Entity
 - ✅ All rules fully configurable from Settings UI
 
 ### Leave Management
-- ✅ 5 pre-configured leave types (VL, SL, Emergency, Maternity, Paternity)
+- ✅ 9 leave types seeded by default:
+  - Vacation Leave (VL) — 15 days/year
+  - Sick Leave (SL) — 15 days/year
+  - Emergency Leave (EL) — 3 days/year
+  - Maternity Leave (ML) — 105 days, female only
+  - Paternity Leave (PTL) — 7 days, male only
+  - Bereavement Leave (BRL) — 5 days
+  - Magna Carta Leave (MCL) — 60 days, female only (RA 9710)
+  - Leave in Lieu of Absence (LLA) — unpaid, case-by-case
+  - Birthday Leave (BDL) — 1 day, must fall on employee's birthday
 - ✅ Leave application with **two-step approval workflow** (Manager → HR)
 - ✅ Real-time leave credit balance tracking
 - ✅ Pending credits reserved during application; released on rejection/cancellation
@@ -130,11 +166,14 @@ A comprehensive web-based HRIS built with **ASP.NET Core MVC (.NET 10)**, Entity
 ### Step 1 — Clone
 ```bash
 git clone https://github.com/EmilyEtea/PECCI-HRIS.git
-cd PECCI-HRIS/PECCI_HRIS
+cd PECCI-HRIS
 ```
 
-### Step 2 — Configure connection string
-Edit `appsettings.json`:
+### Step 2 — Copy and configure the settings file
+```bash
+copy appsettings.template.json appsettings.json
+```
+Then edit `appsettings.json` and set your connection string:
 ```json
 "ConnectionStrings": {
   "DefaultConnection": "Server=(localdb)\\MSSQLLocalDB;Database=PECCI_HRIS_DB;Trusted_Connection=True;TrustServerCertificate=True;"
@@ -150,22 +189,31 @@ Edit `appsettings.json`:
 
 ### Step 3 — Restore packages
 ```bash
-dotnet restore
+dotnet restore PECCI_HRIS.csproj
 ```
 
 ### Step 4 — Apply migrations
 ```bash
-dotnet ef database update
+dotnet ef database update --project PECCI_HRIS.csproj
 ```
 This creates the database, all tables, and seeds default data (roles, departments, leave types, system settings).
 
-### Step 5 — Run
+### Step 5 — Load test data (optional)
 ```bash
-dotnet run
+sqlcmd -S localhost\SQLEXPRESS -d PECCI_HRIS_DB -E -C -i Database\01_Seed_Data.sql
+```
+This inserts 12 sample employees, user accounts, and leave credits across 6 departments. The script is self-contained and safe to run multiple times.
+
+> Adjust `-S localhost\SQLEXPRESS` to match your SQL Server instance. For LocalDB use:
+> `sqlcmd -S "(localdb)\MSSQLLocalDB" -d PECCI_HRIS_DB -E -C -i Database\01_Seed_Data.sql`
+
+### Step 6 — Run
+```bash
+dotnet run --project PECCI_HRIS.csproj
 ```
 Navigate to **http://localhost:5000**
 
-### Step 6 — Login
+### Step 7 — Login
 
 **Default admin:**
 
@@ -174,26 +222,32 @@ Navigate to **http://localhost:5000**
 | `admin` | `Admin@123` |
 
 > ⚠️ Change the admin password after first login.
+>
+> To set a different seed password before first run, add `"Seed": { "AdminPassword": "YourStrongPassword" }` to `appsettings.json`. Falls back to `Admin@123` if not set.
 
 ---
 
 ## 🧪 Test Accounts
 
-After running the seed SQL (`Database/01_Seed_Data.sql`), these accounts are available for testing across all departments. Password for all: **`Test@1234`**
+After running `Database/01_Seed_Data.sql` (Step 5 above), these accounts are available. Password for all test accounts: **`Test@1234`**
 
-| Username | Role | Department |
-|---|---|---|
-| `admin` | HR Admin | — |
-| `mreyes` | HR Staff | Human Resources |
-| `jdelacruz` | Employee | Human Resources |
-| `agarcia` | Manager | Finance & Accounting |
-| `psantos` | Employee | Finance & Accounting |
-| `rcastillo` | Manager | Operations |
-| `gfernandez` | Employee | Operations |
-| `mpascual` | Manager | Marketing |
-| `nsoriano` | Employee | Marketing |
-| `vtan` | Manager | Auditing |
-| `cnavarro` | Employee | Auditing |
+> All names, emails, phone numbers, and addresses in the demo data are fictional.
+
+| Username | Password | Role | Department |
+|---|---|---|---|
+| `admin` | `Admin@123` | HR Admin | — |
+| `mreyes` | `Test@1234` | HR Staff | Human Resources |
+| `jdelacruz` | `Test@1234` | Employee | Human Resources |
+| `agarcia` | `Test@1234` | Manager | Finance & Accounting |
+| `psantos` | `Test@1234` | Employee | Finance & Accounting |
+| `cmendoza` | `Test@1234` | Manager | Information Technology |
+| `lvillanueva` | `Test@1234` | Employee | Information Technology |
+| `rcastillo` | `Test@1234` | Manager | Operations |
+| `gfernandez` | `Test@1234` | Employee | Operations |
+| `mpascual` | `Test@1234` | Manager | Marketing |
+| `nsoriano` | `Test@1234` | Employee | Marketing |
+| `vtan` | `Test@1234` | Manager | Auditing |
+| `cnavarro` | `Test@1234` | Employee | Auditing |
 
 ---
 
@@ -252,24 +306,28 @@ Monthly withholding tax = Annual tax ÷ 12
 ## 📁 Project Structure
 
 ```
-PECCI_HRIS/
-├── Configuration/          # AttendanceSettings, PayrollSettings, KioskSettings
-├── Controllers/            # 14 MVC controllers
-├── Data/                   # ApplicationDbContext + migrations
+PECCI-HRIS/
+├── Configuration/          # AttendanceSettings, EmailSettings, KioskSettings, PayrollSettings
+├── Controllers/            # MVC controllers (one per feature area)
+├── Data/                   # ApplicationDbContext + design-time factory
 ├── Database/               # SQL scripts & setup guide
-├── Documentation/          # Technical documentation & PDF
-├── Models/                 # 15 entity models
-├── Services/               # 8 services
+├── Documentation/          # Technical documentation
+├── Migrations/             # EF Core migration history
+├── Models/                 # Entity models
+├── Services/
 │   ├── AttendanceComputationService  # Late/OT/undertime logic
-│   ├── TaxComputationService         # BIR TRAIN Law + SSS/PhilHealth/Pag-IBIG
-│   ├── LeaveCreditService            # Leave credit allocation
 │   ├── AuditService                  # Audit log writer
-│   ├── PayslipPdfService             # iText7 PDF generation
+│   ├── EmailService                  # SMTP notifications (MailKit)
 │   ├── ExcelExportService            # ClosedXML Excel exports
+│   ├── HolidayService                # Holiday calendar helpers
+│   ├── LeaveCreditRefreshJob         # Background: annual leave credit refresh
+│   ├── LeaveCreditService            # Leave credit allocation
+│   ├── PayslipPdfService             # iText7 PDF generation
 │   ├── RecurringDeductionService     # Auto-generates recurring deductions
-│   └── LeaveCreditRefreshJob         # Background: annual leave credit refresh
+│   ├── SystemSettingsService         # Runtime settings cache
+│   └── TaxComputationService         # BIR TRAIN Law + SSS/PhilHealth/Pag-IBIG
 ├── ViewModels/             # View models for all forms & displays
-├── Views/                  # 55+ Razor views
+├── Views/                  # Razor views
 │   ├── Account/            # Login, Profile, AccessDenied
 │   ├── Attendance/         # Index, Scanner, Adjust, Summary
 │   ├── Deduction/          # Index, Create, Edit
@@ -284,8 +342,8 @@ PECCI_HRIS/
 ├── wwwroot/
 │   ├── css/pecci-theme.css # PECCI brand theme
 │   ├── images/pecci-logo.png
-│   └── favicon.png         # Browser tab icon
-├── appsettings.json
+│   └── favicon.png
+├── appsettings.template.json  # Copy to appsettings.json and fill in your values
 ├── Program.cs
 └── HRIS.sln
 ```
@@ -313,4 +371,6 @@ University of Santo Tomas (UST) Internship Program — 2026
 
 **© 2026 PECCI Multipurpose Cooperative — All rights reserved.**
 
-*Compliant with: BIR TRAIN Law (RA 10963, RR 2-2023) · DOLE Labor Code · SSS · PhilHealth · Pag-IBIG (as of 2026)*
+*This system implements computations based on BIR TRAIN Law (RA 10963, RR 2-2023), DOLE Labor Code, SSS, PhilHealth, and Pag-IBIG rules as configured for 2026. Rates and brackets are adjustable from the System Settings UI.*
+
+> **⚠️ Student/internship project.** Built as a capstone by UST interns. All contribution rates and tax brackets should be verified against current official issuances before use in any real payroll environment.

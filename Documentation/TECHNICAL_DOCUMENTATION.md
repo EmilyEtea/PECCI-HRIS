@@ -4,7 +4,7 @@
 
 ---
 
-**Version:** 1.4.0
+**Version:** 2.0.0
 **Year:** 2026
 **Developed by:** UST Interns — Arkin Reinier Aguilar, Maxenne De Guzman, Bernice Elyssa Soriano, Emily Etea
 **Repository:** https://github.com/EmilyEtea/PECCI-HRIS
