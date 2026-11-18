@@ -87,14 +87,16 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-    // Seed default admin user (password: Admin@123)
+    // Seed default admin user.
+    // Password comes from Seed:AdminPassword in config; falls back to "Admin@123".
     if (db.Database.CanConnect() && !db.Users.Any(u => u.Username == "admin"))
     {
+        var seedPassword = builder.Configuration["Seed:AdminPassword"] ?? "Admin@123";
         db.Users.Add(new PECCI_HRIS.Models.User
         {
             Username     = "admin",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
-            Email        = "admin@pecci.com.ph",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(seedPassword),
+            Email        = "admin@example.com",
             RoleID       = 1,
             IsActive     = true,
             CreatedAt    = DateTime.Now

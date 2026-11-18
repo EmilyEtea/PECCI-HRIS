@@ -13,7 +13,7 @@ namespace PECCI_HRIS.Models
         [MaxLength(10)]
         public string? LeaveCode { get; set; }
 
-        [MaxLength(300)]
+        [MaxLength(500)]
         public string? Description { get; set; }
 
         public int DefaultDaysPerYear { get; set; } = 0;

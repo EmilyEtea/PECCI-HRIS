@@ -1,16 +1,22 @@
 -- ============================================================
 -- PECCI HRIS — Sample / Test Seed Data
 -- Run this AFTER: dotnet ef database update
--- EF migrations already handle: Roles, Admin User, Departments,
+-- EF migrations already handle: Roles, Admin User, Departments (1–5),
 -- Leave Types, and System Settings.
--- This script adds: Positions, Sample Employees, User Accounts,
--- and Leave Credits for testing across all departments.
+-- This script adds: Auditing department (if missing), Positions, Sample Employees,
+-- User Accounts, and Leave Credits for testing across all departments.
 --
 -- All test account passwords: Test@1234
 -- Admin password: Admin@123
 -- ============================================================
 
 USE PECCI_HRIS_DB;
+GO
+
+-- ── Auditing department (not in EF seed — insert if missing) ─────────────────
+IF NOT EXISTS (SELECT 1 FROM Departments WHERE DepartmentCode = 'AUD')
+    INSERT INTO Departments (DepartmentName, DepartmentCode, IsActive, CreatedAt)
+    VALUES ('Auditing', 'AUD', 1, '2026-01-01');
 GO
 
 -- ── Positions (one manager + one staff per department) ────────────────────────
@@ -37,23 +43,23 @@ GO
 MERGE Employees AS target
 USING (VALUES
   -- HR (DeptID 1)
-  ('EMP-0003','Maria', 'Santos',  'Reyes',     '1990-03-15','Female','Single',  'Filipino','123 Rizal St, Manila',         '09171234503','mreyes@pecci.com.ph',     1,'HR-MGR', '2022-01-10','Regular',     'Active'),
-  ('EMP-0004','Jose',  'Cruz',    'Dela Cruz', '1993-07-22','Male',  'Single',  'Filipino','456 Mabini Ave, Quezon City',  '09171234504','jdelacruz@pecci.com.ph',  1,'HR-STF', '2023-03-01','Regular',     'Active'),
+  ('EMP-0003','Maria', 'Santos',  'Reyes',     '1990-03-15','Female','Single',  'Filipino','1 Test St, Sample City',       '09000000001','mreyes@example.com',      'HR', 'HR-MGR', '2022-01-10','Regular',     'Active'),
+  ('EMP-0004','Jose',  'Cruz',    'Dela Cruz', '1993-07-22','Male',  'Single',  'Filipino','2 Test St, Sample City',       '09000000002','jdelacruz@example.com',   'HR', 'HR-STF', '2023-03-01','Regular',     'Active'),
   -- Finance (DeptID 2)
-  ('EMP-0005','Ana',   'Lopez',   'Garcia',    '1988-11-05','Female','Married', 'Filipino','789 Bonifacio Blvd, Makati',   '09171234505','agarcia@pecci.com.ph',    2,'FIN-MGR','2021-06-15','Regular',     'Active'),
-  ('EMP-0006','Pedro', 'Ramos',   'Santos',    '1995-02-18','Male',  'Single',  'Filipino','321 Luna St, Pasig',           '09171234506','psantos@pecci.com.ph',    2,'FIN-ACC','2023-08-01','Probationary','Active'),
+  ('EMP-0005','Ana',   'Lopez',   'Garcia',    '1988-11-05','Female','Married', 'Filipino','3 Test St, Sample City',       '09000000003','agarcia@example.com',     'FIN','FIN-MGR','2021-06-15','Regular',     'Active'),
+  ('EMP-0006','Pedro', 'Ramos',   'Santos',    '1995-02-18','Male',  'Single',  'Filipino','4 Test St, Sample City',       '09000000004','psantos@example.com',     'FIN','FIN-ACC','2023-08-01','Probationary','Active'),
   -- IT (DeptID 3)
-  ('EMP-0007','Carlo', 'Bautista','Mendoza',   '1991-09-30','Male',  'Single',  'Filipino','654 Aguinaldo Rd, Taguig',     '09171234507','cmendoza@pecci.com.ph',   3,'IT-MGR', '2020-04-20','Regular',     'Active'),
-  ('EMP-0008','Liza',  'Torres',  'Villanueva','1996-05-12','Female','Single',  'Filipino','987 Quezon Ave, Pasay',        '09171234508','lvillanueva@pecci.com.ph', 3,'IT-STF', '2024-01-15','Probationary','Active'),
+  ('EMP-0007','Carlo', 'Bautista','Mendoza',   '1991-09-30','Male',  'Single',  'Filipino','5 Test St, Sample City',       '09000000005','cmendoza@example.com',    'IT', 'IT-MGR', '2020-04-20','Regular',     'Active'),
+  ('EMP-0008','Liza',  'Torres',  'Villanueva','1996-05-12','Female','Single',  'Filipino','6 Test St, Sample City',       '09000000006','lvillanueva@example.com', 'IT', 'IT-STF', '2024-01-15','Probationary','Active'),
   -- Operations (DeptID 4)
-  ('EMP-0009','Ramon', 'Flores',  'Castillo',  '1987-12-01','Male',  'Married', 'Filipino','147 Taft Ave, Manila',         '09171234509','rcastillo@pecci.com.ph',  4,'OPS-MGR','2019-09-01','Regular',     'Active'),
-  ('EMP-0010','Grace', 'Aquino',  'Fernandez', '1994-04-25','Female','Single',  'Filipino','258 Shaw Blvd, Mandaluyong',   '09171234510','gfernandez@pecci.com.ph', 4,'OPS-STF','2022-11-01','Regular',     'Active'),
+  ('EMP-0009','Ramon', 'Flores',  'Castillo',  '1987-12-01','Male',  'Married', 'Filipino','7 Test St, Sample City',       '09000000007','rcastillo@example.com',   'OPS','OPS-MGR','2019-09-01','Regular',     'Active'),
+  ('EMP-0010','Grace', 'Aquino',  'Fernandez', '1994-04-25','Female','Single',  'Filipino','8 Test St, Sample City',       '09000000008','gfernandez@example.com',  'OPS','OPS-STF','2022-11-01','Regular',     'Active'),
   -- Marketing (DeptID 5)
-  ('EMP-0011','Mark',  'Diaz',    'Pascual',   '1992-08-14','Male',  'Single',  'Filipino','369 EDSA, Caloocan',           '09171234511','mpascual@pecci.com.ph',   5,'MKT-MGR','2021-02-01','Regular',     'Active'),
-  ('EMP-0012','Nina',  'Reyes',   'Soriano',   '1997-01-08','Female','Single',  'Filipino','741 Commonwealth Ave, QC',    '09171234512','nsoriano@pecci.com.ph',   5,'MKT-STF','2023-05-15','Regular',     'Active'),
+  ('EMP-0011','Mark',  'Diaz',    'Pascual',   '1992-08-14','Male',  'Single',  'Filipino','9 Test St, Sample City',       '09000000009','mpascual@example.com',    'MKT','MKT-MGR','2021-02-01','Regular',     'Active'),
+  ('EMP-0012','Nina',  'Reyes',   'Soriano',   '1997-01-08','Female','Single',  'Filipino','10 Test St, Sample City',      '09000000010','nsoriano@example.com',    'MKT','MKT-STF','2023-05-15','Regular',     'Active'),
   -- Auditing (DeptID 6)
-  ('EMP-0013','Victor','Lim',     'Tan',       '1985-06-20','Male',  'Married', 'Filipino','852 Ortigas Ave, Pasig',       '09171234513','vtan@pecci.com.ph',       6,'AUD-MGR','2018-07-01','Regular',     'Active'),
-  ('EMP-0014','Claire','Ong',     'Navarro',   '1993-10-03','Female','Single',  'Filipino','963 Katipunan Ave, QC',        '09171234514','cnavarro@pecci.com.ph',   6,'AUD-STF','2022-09-01','Regular',     'Active')
+  ('EMP-0013','Victor','Lim',     'Tan',       '1985-06-20','Male',  'Married', 'Filipino','11 Test St, Sample City',      '09000000011','vtan@example.com',        'AUD','AUD-MGR','2018-07-01','Regular',     'Active'),
+  ('EMP-0014','Claire','Ong',     'Navarro',   '1993-10-03','Female','Single',  'Filipino','12 Test St, Sample City',      '09000000012','cnavarro@example.com',    'AUD','AUD-STF','2022-09-01','Regular',     'Active')
 ) AS source (EmployeeNo, FirstName, MiddleName, LastName, DateOfBirth, Gender, CivilStatus, Nationality, Address, ContactNumber, CompanyEmail, DeptCode, PosCode, DateHired, EmploymentStatus, Status)
 ON target.EmployeeNo = source.EmployeeNo
 WHEN NOT MATCHED THEN
@@ -76,18 +82,18 @@ DECLARE @hash NVARCHAR(MAX) = N'$2a$11$D9ldhzgheBjmOc3r1stdYe3SsG.ck.K/Z08Kc2kJS
 -- RoleID: 1=HR Admin, 2=HR Staff, 3=Manager, 4=Employee
 MERGE Users AS target
 USING (VALUES
-  (N'mreyes',     @hash, N'mreyes@pecci.com.ph',     2, N'EMP-0003'),  -- HR Staff
-  (N'jdelacruz',  @hash, N'jdelacruz@pecci.com.ph',  4, N'EMP-0004'),  -- Employee
-  (N'agarcia',    @hash, N'agarcia@pecci.com.ph',     3, N'EMP-0005'),  -- Manager
-  (N'psantos',    @hash, N'psantos@pecci.com.ph',     4, N'EMP-0006'),  -- Employee
-  (N'cmendoza',   @hash, N'cmendoza@pecci.com.ph',    3, N'EMP-0007'),  -- Manager (IT)
-  (N'lvillanueva',@hash, N'lvillanueva@pecci.com.ph', 4, N'EMP-0008'),  -- Employee
-  (N'rcastillo',  @hash, N'rcastillo@pecci.com.ph',   3, N'EMP-0009'),  -- Manager
-  (N'gfernandez', @hash, N'gfernandez@pecci.com.ph',  4, N'EMP-0010'),  -- Employee
-  (N'mpascual',   @hash, N'mpascual@pecci.com.ph',    3, N'EMP-0011'),  -- Manager
-  (N'nsoriano',   @hash, N'nsoriano@pecci.com.ph',    4, N'EMP-0012'),  -- Employee
-  (N'vtan',       @hash, N'vtan@pecci.com.ph',        3, N'EMP-0013'),  -- Manager
-  (N'cnavarro',   @hash, N'cnavarro@pecci.com.ph',    4, N'EMP-0014')   -- Employee
+  (N'mreyes',     @hash, N'mreyes@example.com',      2, N'EMP-0003'),  -- HR Staff
+  (N'jdelacruz',  @hash, N'jdelacruz@example.com',   4, N'EMP-0004'),  -- Employee
+  (N'agarcia',    @hash, N'agarcia@example.com',      3, N'EMP-0005'),  -- Manager
+  (N'psantos',    @hash, N'psantos@example.com',      4, N'EMP-0006'),  -- Employee
+  (N'cmendoza',   @hash, N'cmendoza@example.com',     3, N'EMP-0007'),  -- Manager (IT)
+  (N'lvillanueva',@hash, N'lvillanueva@example.com',  4, N'EMP-0008'),  -- Employee
+  (N'rcastillo',  @hash, N'rcastillo@example.com',    3, N'EMP-0009'),  -- Manager
+  (N'gfernandez', @hash, N'gfernandez@example.com',   4, N'EMP-0010'),  -- Employee
+  (N'mpascual',   @hash, N'mpascual@example.com',     3, N'EMP-0011'),  -- Manager
+  (N'nsoriano',   @hash, N'nsoriano@example.com',     4, N'EMP-0012'),  -- Employee
+  (N'vtan',       @hash, N'vtan@example.com',         3, N'EMP-0013'),  -- Manager
+  (N'cnavarro',   @hash, N'cnavarro@example.com',     4, N'EMP-0014')   -- Employee
 ) AS source (Username, PasswordHash, Email, RoleID, EmployeeNo)
 ON target.Username = source.Username
 WHEN NOT MATCHED THEN
