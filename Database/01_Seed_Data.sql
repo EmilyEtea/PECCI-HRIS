@@ -10,8 +10,7 @@
 -- Admin password: Admin@123
 -- ============================================================
 
-USE PECCI_HRIS_DB;
-GO
+
 
 -- ── Auditing department (not in EF seed — insert if missing) ─────────────────
 IF NOT EXISTS (SELECT 1 FROM Departments WHERE DepartmentCode = 'AUD')
