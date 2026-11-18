@@ -29,10 +29,10 @@ A comprehensive web-based HRIS built with **ASP.NET Core MVC (.NET 10)**, Entity
 
 ## 📸 Screenshots
 
-<!-- Add screenshots to docs/screenshots/ and update the paths below -->
-![Dashboard](docs/screenshots/dashboard.png)
-![Attendance Scanner](docs/screenshots/scanner.png)
-![Payslip](docs/screenshots/payslip.png)
+![Login Page](docs/screenshots/LOGIN_PAGE.png)
+![Admin Dashboard](docs/screenshots/ADMIN_DASHBOARD.png)
+![Employee Dashboard](docs/screenshots/EMPLOYEE_DASHBOARD.png)
+![Attendance Scanner](docs/screenshots/ATTENDANCE_SCANNER.png)
 
 ---
 
